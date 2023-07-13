@@ -11,6 +11,10 @@ export const constantRoutes: RouteRecordRaw[] = [
 		path: "/page1",
 		component: () => import("@/views/AboutVue.vue"),
 	},
+	{
+		path: "/login",
+		component: () => import("@/views/login/LoginVue.vue"),
+	},
 ];
 
 const modules: Record<string, any> = import.meta.glob("../router/*/index.ts", { eager: true });
@@ -33,13 +37,28 @@ export const router: Router = createRouter({
 });
 
 router.beforeEach(async (to, from, next) => {
+	console.log("router beforeEach");
+
 	const userStore = useUserStoreHook();
 	const permissionStore = usePermissonStoreHook();
-	console.log("router beforeEach");
 	// 判断该用户是否登录
+	const token = localCache.getCache("token");
+	if (to.path !== "/login" && !token) {
+		next({ path: "/login" });
+	} else {
+		if (to.path === "/login" && token) {
+			next({ path: "/page1" });
+		} else {
+			next();
+		}
+	}
+	// 如果还没登录并且进入的不是登录页面，重定向为login页面
+	to.path !== "/login" && !token && next({ path: "/login" });
+	// 如果已经登录，并准备进入 Login 页面， 则重定向到主页
+	token && to.path === "/login" && next({ path: "/" });
+	// 登录了，进入其他页面，先检查用户是否已经获得其权限角色
 	if (localCache.getCache("token")) {
 		if (to.path === "/login") {
-			// 如果已经登录，并准备进入 Login 页面， 则重定向到主页
 			next({ path: "/" });
 		} else {
 			// 检查用户是否已获得其权限角色
@@ -54,6 +73,7 @@ router.beforeEach(async (to, from, next) => {
 					permissionStore.dynamicRoutes.forEach((route) => {
 						router.addRoute(route);
 					});
+					// console.log(permissionStore.routes);
 					// 所有路由加载完毕后
 					// 设置 replace
 					next({ ...to, replace: true });
@@ -68,6 +88,7 @@ router.beforeEach(async (to, from, next) => {
 			}
 		}
 	} else {
-		// 没有登录
+		// 没有Token
+		next("/login");
 	}
 });
