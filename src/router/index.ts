@@ -17,6 +17,7 @@ export const constantRoutes: RouteRecordRaw[] = [
 	},
 ];
 
+// 菜单动态路由 + 按钮级别的权限控制
 const modules: Record<string, any> = import.meta.glob("../router/*/index.ts", { eager: true });
 const GetAsyncRoutes = (): RouteRecordRaw[] => {
 	return Object.keys(modules).map((item) => {
