@@ -1,10 +1,12 @@
 <template>
-	<router-view />
-	<RouterLink to="/page1">1</RouterLink>
-	<RouterLink to="/page2">2</RouterLink>
-	<RouterLink to="/page3">3</RouterLink>
+	<Login />
+	<br />
+	<span>--------------------------------------未登录</span>
+	<RouterView />
 </template>
 
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import Login from "@/views/login/LoginVue.vue";
+</script>
 
 <style lang="sass" scoped></style>

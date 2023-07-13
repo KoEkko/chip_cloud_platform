@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import { store } from "..";
+import { localCache } from "../../utils/CacheType";
 
 export const useUserStore = defineStore("user", () => {
 	const token = ref<string>("");
@@ -30,6 +31,7 @@ export const useUserStore = defineStore("user", () => {
 	// 登录
 	const login = async (userName: string, passWord: string) => {
 		const { data } = await MockLoginApi(userName, passWord);
+		localCache.setCache("token", data.token);
 		token.value = data.token;
 	};
 
@@ -38,7 +40,7 @@ export const useUserStore = defineStore("user", () => {
 		return new Promise((resolve) => {
 			resolve({
 				data: {
-					roles,
+					roles: ["admin"],
 				},
 			});
 		});
@@ -46,6 +48,7 @@ export const useUserStore = defineStore("user", () => {
 	// 获取用户详情
 	const getInfo = async () => {
 		const { data } = await MockGetInfo();
+		console.log(data);
 		// 验证用户详情中的roles是否为一个空数组，否则塞入一个默认角色
 		roles.value = data.roles?.length > 0 ? data.roles : ["DEFAULT_ROLE"];
 	};

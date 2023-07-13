@@ -1,5 +1,5 @@
 <template>
-	<div class="page3">page3</div>
+	<div class="PagePermission">PagePermission</div>
 </template>
 
 <script setup lang="ts"></script>

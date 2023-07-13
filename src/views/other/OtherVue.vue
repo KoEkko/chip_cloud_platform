@@ -1,5 +1,5 @@
 <template>
-	<div class="page2">page2</div>
+	<div class="othervue">othervue</div>
 </template>
 
 <script setup lang="ts"></script>

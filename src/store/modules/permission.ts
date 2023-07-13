@@ -19,7 +19,7 @@ const hasPermission = (roles: string[], route: RouteRecordRaw) => {
  * 根据角色role筛选路由
  * @param routes 前端配置的动态路由信息 asyncRoutes
  * @param roles 后端获取用户的roles信息
- * @returns 改用户所拥有的权限路由
+ * @returns 该用户所拥有的权限路由
  */
 const filterAsyncRoutes = (routes: RouteRecordRaw[], roles: string[]) => {
 	const res: RouteRecordRaw[] = [];
