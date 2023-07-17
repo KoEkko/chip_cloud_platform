@@ -1,12 +1,9 @@
 <template>
-	<Login />
-	<br />
-	<span>--------------------------------------未登录</span>
-	<RouterView />
+	<TerminalView />
 </template>
 
 <script setup lang="ts">
-import Login from "@/views/login/LoginVue.vue";
+import TerminalView from "./views/main/TerminalView.vue";
 </script>
 
 <style lang="sass" scoped></style>
