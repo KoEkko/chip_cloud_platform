@@ -1,9 +1,9 @@
 <template>
-	<TerminalView />
+	<LayOut />
 </template>
 
 <script setup lang="ts">
-import TerminalView from "./views/main/TerminalView.vue";
+import LayOut from "./views/main/layout/LayOut.vue";
 </script>
 
 <style lang="sass" scoped></style>

@@ -1,7 +1,5 @@
 <template>
-	<div class="wrap">
-		<div id="terminal-container" class="c-webTerminal_container"></div>
-	</div>
+	<div id="terminal-container" class="c-webTerminal_container"></div>
 </template>
 
 <script setup lang="ts">
@@ -29,15 +27,14 @@ ws.onerror = () => {
 
 let terminal = ref(
 	new Terminal({
-		rows: 40,
-		cols: 100,
 		convertEol: true,
 		disableStdin: false,
 		cursorBlink: true,
 		theme: {
-			foreground: "#ECECEC",
 			background: "#000000",
-			cursor: "help",
+			foreground: "#FFFFFF",
+			cursor: "#00FF00",
+			selectionForeground: "#FFFFFF",
 		},
 	})
 );
@@ -67,7 +64,6 @@ const runFakeTerminal = () => {
 			prompt();
 		} else if (keyDown === "Backspace") {
 			// back 删除的情况
-			console.log(terminal.value.buffer.active.cursorX);
 			if (terminal.value.buffer.active.cursorX > 2) {
 				terminal.value.write("\b \b");
 			}
@@ -108,12 +104,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.wrap {
-	display: flex;
-	flex-direction: column-reverse;
-}
 .c-webTerminal_container {
-	width: calc(100vw - 20%);
-	height: 350px;
+	width: 100%;
+	overflow: hidden;
 }
 </style>
