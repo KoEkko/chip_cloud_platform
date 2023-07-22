@@ -24,6 +24,16 @@ export default defineConfig({
 			views: fileURLToPath(new URL("./src/views", import.meta.url)),
 		},
 	},
+	server: {
+		port: 3000,
+		proxy: {
+			"/api": {
+				target: "http://118.24.150.38:84/",
+				changeOrigin: true,
+				rewrite: (path) => path.replace(/^\/api/, ""),
+			},
+		},
+	},
 	plugins: [
 		vue(),
 

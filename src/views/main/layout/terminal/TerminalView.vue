@@ -6,24 +6,27 @@
 import { onMounted, ref } from "vue";
 import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
+import _request from "../../../../service";
 
-// 创建 WebSoctket 并指定一个地址
-let ws = new WebSocket("ws://localhost:8080");
+// const WebSocketURL = "ws://118.24.150.38:84";
 
-// 是否连接成功
-ws.onopen = () => {
-	console.log("连接成功");
-};
+// // 创建 WebSoctket 并指定一个地址
+// let ws = new WebSocket(WebSocketURL);
 
-// 监听服务端发送过来的消息
-ws.onmessage = (messObj) => {
-	console.log("发送过来的消息", messObj);
-};
+// // 是否连接成功
+// ws.onopen = () => {
+// 	console.log("连接成功");
+// };
 
-// 连接失败
-ws.onerror = () => {
-	console.log("连接失败");
-};
+// // 监听服务端发送过来的消息
+// ws.onmessage = (messObj) => {
+// 	console.log("发送过来的消息", messObj);
+// };
+
+// // 连接失败
+// ws.onerror = () => {
+// 	console.log("连接失败");
+// };
 
 let terminal = ref(
 	new Terminal({
@@ -44,13 +47,16 @@ let inputText = ref<string>("");
 const prompt = () => {
 	terminal.value.write("\r\n\x1b[33m$\x1b[0m ");
 };
+const writeln = (str: string) => {
+	terminal.value.writeln(str);
+};
 
 const runFakeTerminal = () => {
-	terminal.value.writeln("Welcome to \x1b[1;32mWeb Terminal\x1b[0m.");
-	terminal.value.writeln("This is Web Terminal of Chip_cloud_platform; We can do it !.");
+	writeln("Welcome to \x1b[1;32mWeb Terminal\x1b[0m.");
+	writeln("This is Web Terminal of Chip_cloud_platform; We can do it !.");
 	prompt();
 	// 添加事件监听器，支持输入方法
-	terminal.value.onKey((e) => {
+	terminal.value.onKey(async (e) => {
 		// 能够输入的按键
 		const printable = !e.domEvent.altKey && !e.domEvent.ctrlKey && !e.domEvent.metaKey;
 		// 获取键盘信息
@@ -58,10 +64,21 @@ const runFakeTerminal = () => {
 		// 特殊按键的处理
 		if (keyDown === "Enter") {
 			// 清空上一次的命令
-			ws.send(inputText.value);
+			// ws.send(JSON.stringify(inputText.value));
+			const data = JSON.stringify({ code: inputText.value });
 			inputText.value = "";
-			// 发送信息到服务端
 			prompt();
+			const res = await _request.post({
+				headers: {
+					"Content-Type": "application/json",
+				},
+				url: "code",
+				data,
+			});
+			// 判断是否请求成功，成功的话就把log打印到terminal上
+			// 否则log错误信息
+			console.log(res);
+			// 发送信息到服务端
 		} else if (keyDown === "Backspace") {
 			// back 删除的情况
 			if (terminal.value.buffer.active.cursorX > 2) {

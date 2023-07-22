@@ -1,8 +1,5 @@
 <template>
 	<div>
-		<div style="margin-bottom: 16px">
-			<br />
-		</div>
 		<a-tree :show-line="showLine" :default-expanded-keys="['0-0-0']" :tree-data="treeData" @right-click="onRightClick">
 			<template #icon><carry-out-outlined /></template>
 			<template #title="{ dataRef }">
@@ -11,14 +8,7 @@
 				</template>
 				<template v-else>
 					<a-dropdown :trigger="['contextmenu']">
-						<div
-							:style="{
-								textAlign: 'center',
-								height: '20px',
-								lineHeight: '20px',
-								color: '#777',
-							}"
-						>
+						<div>
 							{{ dataRef.title }}
 						</div>
 						<!-- Overlay图层 -->
@@ -107,3 +97,8 @@ const menuItemClick = () => {
 // 	console.log("selected", selectedKeys, info);
 // };
 </script>
+<style scoped>
+.ant-tabs-content-holder {
+	margin-top: 64px;
+}
+</style>

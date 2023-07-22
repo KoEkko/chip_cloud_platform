@@ -1,6 +1,6 @@
 <template>
 	<a-layout style="min-height: 100vh">
-		<a-layout-sider v-model:collapsed="collapsed" collapsible width="350px" collapsed-width="110px" theme="light">
+		<a-layout-sider v-model:collapsed="collapsed" collapsible width="350px" collapsed-width="110px" theme="dark">
 			<div class="logo" />
 			<a-tabs
 				v-model:activeKey="activeKey"
@@ -9,7 +9,7 @@
 				@tab-click="tabClick"
 			>
 				<template v-for="item in tabPanes" :key="item.key">
-					<a-tab-pane>
+					<a-tab-pane style="margin-top: 64px">
 						<template #tab>
 							<span>
 								<component :is="item.icon"></component>
@@ -22,13 +22,15 @@
 			</a-tabs>
 		</a-layout-sider>
 		<a-layout>
-			<a-layout-header style="background: #fff; padding: 0" />
+			<a-layout-header style="background: #fff; padding: 0; color: black">
+				<slot name="header"></slot>
+			</a-layout-header>
 			<a-layout-content style="margin: 0 16px">
 				<a-breadcrumb style="margin: 16px 0">
 					<a-breadcrumb-item>User</a-breadcrumb-item>
 					<a-breadcrumb-item>Bill</a-breadcrumb-item>
 				</a-breadcrumb>
-				<div :style="{ padding: '24px', background: '#fff', minHeight: '720px' }">
+				<div :style="{ background: '#fff', minHeight: '720px' }">
 					<slot name="content"></slot>
 				</div>
 			</a-layout-content>
@@ -47,7 +49,8 @@ import { TabsProps } from "ant-design-vue/es/tabs";
 
 // TabBar样式
 const tabBarStyle = ref({
-	color: "black",
+	color: "#fff",
+	margin: "64px 0 0 0",
 });
 
 const collapsed = ref<boolean>(false);
@@ -72,11 +75,13 @@ const tabPanes = [
 		key: "2",
 		tab: "元件库",
 		icon: ApiOutlined,
+		tabPane: ProjectTree,
 	},
 	{
 		key: "3",
 		tab: "常用库",
 		icon: CalendarOutlined,
+		tabPane: ProjectTree,
 	},
 ];
 </script>
@@ -92,6 +97,7 @@ const tabPanes = [
 	color: #fff;
 }
 .ant-tabs-content-holder {
+	margin-top: 64px;
 	width: 500px;
 }
 .site-layout .site-layout-background {
@@ -102,5 +108,12 @@ const tabPanes = [
 }
 .ant-tabs {
 	height: 100%;
+}
+.ant-layout-footer {
+	padding: 0;
+}
+.ant-tree {
+	color: #fff;
+	background-color: black;
 }
 </style>
