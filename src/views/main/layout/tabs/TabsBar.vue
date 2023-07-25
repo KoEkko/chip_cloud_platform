@@ -1,7 +1,9 @@
 <template>
 	<a-layout style="min-height: 100vh">
 		<a-layout-sider v-model:collapsed="collapsed" collapsible width="350px" collapsed-width="110px" theme="dark">
-			<div class="logo" />
+			<div class="logo">
+				<img src="@/assets/kxy.png" style="height: 64px" />
+			</div>
 			<a-tabs
 				v-model:activeKey="activeKey"
 				:tab-position="tabPosition"
@@ -9,7 +11,7 @@
 				@tab-click="tabClick"
 			>
 				<template v-for="item in tabPanes" :key="item.key">
-					<a-tab-pane style="margin-top: 64px">
+					<a-tab-pane>
 						<template #tab>
 							<span>
 								<component :is="item.icon"></component>
@@ -30,7 +32,7 @@
 					<a-breadcrumb-item>User</a-breadcrumb-item>
 					<a-breadcrumb-item>Bill</a-breadcrumb-item>
 				</a-breadcrumb>
-				<div :style="{ background: '#fff', minHeight: '720px' }">
+				<div :style="contentStyle" class="content">
 					<slot name="content"></slot>
 				</div>
 			</a-layout-content>
@@ -50,10 +52,14 @@ import { TabsProps } from "ant-design-vue/es/tabs";
 // TabBar样式
 const tabBarStyle = ref({
 	color: "#fff",
-	margin: "64px 0 0 0",
+});
+const contentStyle = ref({
+	background: "#fff",
+	height: "700px",
+	width: "100%",
 });
 
-const collapsed = ref<boolean>(false);
+const collapsed = ref<boolean>(true);
 const tabPosition = ref<TabsProps["tabPosition"]>("left");
 const activeKey = ref("1");
 
@@ -87,17 +93,14 @@ const tabPanes = [
 </script>
 
 <style scoped>
-#components-layout-demo-side .logo {
-	height: 32px;
-	margin: 16px;
-	background: rgba(255, 255, 255, 0.3);
+.logo {
+	display: flex;
+	justify-content: center;
 }
-
 .ant-tabs {
 	color: #fff;
 }
 .ant-tabs-content-holder {
-	margin-top: 64px;
 	width: 500px;
 }
 .site-layout .site-layout-background {
@@ -105,9 +108,6 @@ const tabPanes = [
 }
 [data-theme="dark"] .site-layout .site-layout-background {
 	background: #141414;
-}
-.ant-tabs {
-	height: 100%;
 }
 .ant-layout-footer {
 	padding: 0;

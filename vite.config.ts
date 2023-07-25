@@ -21,7 +21,6 @@ export default defineConfig({
 		alias: {
 			// 配置路径别名
 			"@": fileURLToPath(new URL("./src", import.meta.url)),
-			views: fileURLToPath(new URL("./src/views", import.meta.url)),
 		},
 	},
 	server: {

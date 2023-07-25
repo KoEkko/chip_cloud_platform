@@ -6,7 +6,7 @@
 import { onMounted, ref } from "vue";
 import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
-import _request from "../../../../service";
+import { useTerminalStore } from "../../../../store/modules/getTerminal";
 
 // const WebSocketURL = "ws://118.24.150.38:84";
 
@@ -28,6 +28,7 @@ import _request from "../../../../service";
 // 	console.log("连接失败");
 // };
 
+const terminalStore = useTerminalStore();
 let terminal = ref(
 	new Terminal({
 		convertEol: true,
@@ -41,20 +42,20 @@ let terminal = ref(
 		},
 	})
 );
-const fitAddon = new FitAddon();
 let inputText = ref<string>("");
+
+const fitAddon = new FitAddon();
 // 换行并输入起始符 $
 const prompt = () => {
 	terminal.value.write("\r\n\x1b[33m$\x1b[0m ");
 };
 const writeln = (str: string) => {
-	terminal.value.writeln(str);
+	terminal.value.write(str);
+	prompt();
 };
-
-const runFakeTerminal = () => {
+const runFakeTerminal = async () => {
 	writeln("Welcome to \x1b[1;32mWeb Terminal\x1b[0m.");
 	writeln("This is Web Terminal of Chip_cloud_platform; We can do it !.");
-	prompt();
 	// 添加事件监听器，支持输入方法
 	terminal.value.onKey(async (e) => {
 		// 能够输入的按键
@@ -65,20 +66,12 @@ const runFakeTerminal = () => {
 		if (keyDown === "Enter") {
 			// 清空上一次的命令
 			// ws.send(JSON.stringify(inputText.value));
-			const data = JSON.stringify({ code: inputText.value });
+			await terminalStore.getCommandRes(inputText.value);
+			const commandData = terminalStore.getResult();
 			inputText.value = "";
+			// 将log打印到terminal上
 			prompt();
-			const res = await _request.post({
-				headers: {
-					"Content-Type": "application/json",
-				},
-				url: "code",
-				data,
-			});
-			// 判断是否请求成功，成功的话就把log打印到terminal上
-			// 否则log错误信息
-			console.log(res);
-			// 发送信息到服务端
+			writeln(commandData.value.data);
 		} else if (keyDown === "Backspace") {
 			// back 删除的情况
 			if (terminal.value.buffer.active.cursorX > 2) {
