@@ -37,8 +37,6 @@ watch(commandData, (newValue) => {
 
 onMounted(() => {
 	container.value?.appendChild(app.view as any);
-	const text = new PIXI.Text("hello world");
-	app.stage.addChild(text);
 });
 </script>
 
