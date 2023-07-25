@@ -10,6 +10,7 @@ declare module 'vue' {
     ABreadcrumb: typeof import('ant-design-vue/es')['Breadcrumb']
     ABreadcrumbItem: typeof import('ant-design-vue/es')['BreadcrumbItem']
     AButton: typeof import('ant-design-vue/es')['Button']
+    ACheckboxGroup: typeof import('ant-design-vue/es')['CheckboxGroup']
     ADropdown: typeof import('ant-design-vue/es')['Dropdown']
     ALayout: typeof import('ant-design-vue/es')['Layout']
     ALayoutContent: typeof import('ant-design-vue/es')['LayoutContent']

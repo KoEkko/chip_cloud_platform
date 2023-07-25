@@ -29,11 +29,11 @@
 			</a-layout-header>
 			<a-layout-content style="margin: 0 16px">
 				<a-breadcrumb style="margin: 16px 0">
-					<a-breadcrumb-item>User</a-breadcrumb-item>
-					<a-breadcrumb-item>Bill</a-breadcrumb-item>
+					<a-breadcrumb-item>工程1</a-breadcrumb-item>
 				</a-breadcrumb>
-				<div :style="contentStyle" class="content">
-					<slot name="content"></slot>
+				<div class="content-box">
+					<slot name="content" class="canvas"></slot>
+					<slot name="control" class="control"></slot>
 				</div>
 			</a-layout-content>
 			<a-layout-footer style="margin: 0 16px">
@@ -52,11 +52,6 @@ import { TabsProps } from "ant-design-vue/es/tabs";
 // TabBar样式
 const tabBarStyle = ref({
 	color: "#fff",
-});
-const contentStyle = ref({
-	background: "#fff",
-	height: "700px",
-	width: "100%",
 });
 
 const collapsed = ref<boolean>(true);
@@ -92,7 +87,7 @@ const tabPanes = [
 ];
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .logo {
 	display: flex;
 	justify-content: center;
@@ -109,6 +104,15 @@ const tabPanes = [
 [data-theme="dark"] .site-layout .site-layout-background {
 	background: #141414;
 }
+
+.content-box {
+	height: 90%;
+	display: flex;
+	.canvas {
+		flex: 1;
+	}
+}
+
 .ant-layout-footer {
 	padding: 0;
 }

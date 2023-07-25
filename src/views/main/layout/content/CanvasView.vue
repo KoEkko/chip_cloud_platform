@@ -13,9 +13,11 @@ const wrap = ref<HTMLBodyElement>();
 
 const container = ref<HTMLBodyElement>();
 let app = new PIXI.Application({
+	width: 2100,
+	height: 760,
 	backgroundColor: 0xffffff,
-	resolution: window.devicePixelRatio,
 	autoDensity: true,
+	resolution: window.devicePixelRatio,
 });
 
 function handleCanvasClear() {
@@ -32,27 +34,21 @@ watch(commandData, (newValue) => {
 	// const spirte = new PIXI.Sprite(texture);
 	app.stage.addChild(text);
 });
+
 onMounted(() => {
 	container.value?.appendChild(app.view as any);
-	app.resizeTo = container.value as HTMLBodyElement;
+	const text = new PIXI.Text("hello world");
+	app.stage.addChild(text);
 });
 </script>
 
 <style scoped>
 .wrap {
-	width: 100%;
-	height: 100%;
-	overflow-y: auto;
+	overflow-y: hidden;
 	overflow-x: hidden;
-	position: relative;
 }
 .wrap .container {
 	width: 100%;
 	height: 100%;
-}
-.wrap canvas {
-	position: absolute;
-	top: 0;
-	left: 0;
 }
 </style>

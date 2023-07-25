@@ -5,7 +5,10 @@
 			<TerminalView />
 		</template>
 		<template #content>
-			<ContentView ref="contentRef"></ContentView>
+			<CanvasView ref="contentRef"></CanvasView>
+		</template>
+		<template #control>
+			<ControlTools></ControlTools>
 		</template>
 	</TabsBar>
 </template>
@@ -15,11 +18,10 @@ import { ref } from "vue";
 import TabsBar from "./tabs/TabsBar.vue";
 import TerminalView from "./terminal/TerminalView.vue";
 import HeaderView from "./header/HeaderView.vue";
-import ContentView from "./content/ContentView.vue";
-const contentRef = ref<InstanceType<typeof ContentView>>();
+import CanvasView from "./content/CanvasView.vue";
+import ControlTools from "./content/ControlTools.vue";
+const contentRef = ref<InstanceType<typeof CanvasView>>();
 function handlerClear() {
 	contentRef.value?.handleCanvasClear();
 }
 </script>
-
-<style scoped></style>

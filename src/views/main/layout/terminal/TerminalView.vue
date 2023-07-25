@@ -37,7 +37,7 @@ let terminal = ref(
 		theme: {
 			background: "#000000",
 			foreground: "#FFFFFF",
-			cursor: "#00FF00",
+			cursor: "#00000",
 			selectionForeground: "#FFFFFF",
 		},
 	})
@@ -54,7 +54,6 @@ const writeln = (str: string) => {
 	prompt();
 };
 const runFakeTerminal = async () => {
-	writeln("Welcome to \x1b[1;32mWeb Terminal\x1b[0m.");
 	writeln("This is Web Terminal of Chip_cloud_platform; We can do it !.");
 	// 添加事件监听器，支持输入方法
 	terminal.value.onKey(async (e) => {
