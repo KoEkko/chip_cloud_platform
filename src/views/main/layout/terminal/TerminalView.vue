@@ -112,9 +112,4 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.c-webTerminal_container {
-	width: 100%;
-	overflow: hidden;
-}
-</style>
+<style scoped></style>

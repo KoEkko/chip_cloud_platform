@@ -12,30 +12,42 @@ import { useTerminalStore } from "../../../../store/modules/getTerminal";
 const wrap = ref<HTMLBodyElement>();
 
 const container = ref<HTMLBodyElement>();
-let app = new PIXI.Application({
-	width: 2100,
-	height: 760,
-	backgroundColor: 0xffffff,
-	autoDensity: true,
-	resolution: window.devicePixelRatio,
-});
 
-function handleCanvasClear() {
-	// 清空画布
-	app.stage.removeChildren();
-}
-defineExpose({ handleCanvasClear });
+// function handleCanvasClear() {
+// 	// 清空画布
+// 	app.stage.removeChildren();
+// }
+
+// defineExpose({ handleCanvasClear });
 const terminalStore = useTerminalStore();
 const commandData = terminalStore.getResult();
-watch(commandData, (newValue) => {
-	const text = new PIXI.Text(newValue.data);
-	// 根据url绘制图片
-	// const texture = PIXI.Texture.from(newValue.data);
-	// const spirte = new PIXI.Sprite(texture);
-	app.stage.addChild(text);
-});
 
 onMounted(() => {
+	const contianerClientWidth = ref(container.value?.clientWidth);
+
+	console.log(contianerClientWidth.value);
+	let app = new PIXI.Application({
+		width: contianerClientWidth.value,
+		height: 800,
+		backgroundColor: 0xfffff,
+		autoDensity: true,
+		resolution: window.devicePixelRatio,
+	});
+	// const resizeRenderer = () => {
+	// 	const width = contianerClientWidth.value;
+	// 	console.log(width);
+	// 	app.renderer.resize(width, 720);
+	// };
+	// window.addEventListener("resize", resizeRenderer);
+	// resizeRenderer();
+
+	watch(commandData, (newValue) => {
+		const text = new PIXI.Text(newValue.data);
+		// 根据url绘制图片
+		// const texture = PIXI.Texture.from(newValue.data);
+		// const spirte = new PIXI.Sprite(texture);
+		app.stage.addChild(text);
+	});
 	container.value?.appendChild(app.view as any);
 	const text = new PIXI.Text("hello world");
 	app.stage.addChild(text);
@@ -44,11 +56,8 @@ onMounted(() => {
 
 <style scoped>
 .wrap {
-	overflow-y: hidden;
-	overflow-x: hidden;
-}
-.wrap .container {
-	width: 100%;
-	height: 100%;
+	flex: 1;
+	overflow-y: auto;
+	overflow-x: auto;
 }
 </style>

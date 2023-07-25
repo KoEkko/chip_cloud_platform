@@ -15,8 +15,9 @@ const options = [
 <style scoped>
 .checkbox {
 	width: 300px;
-	height: 100%;
-	padding: 10px;
+	padding-left: 12px;
+	padding-top: 12px;
+	margin-right: 16px;
 	display: flex;
 	flex-direction: column;
 	background-color: #fff;
