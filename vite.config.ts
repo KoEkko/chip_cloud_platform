@@ -1,6 +1,5 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
-
 import viteEslint from "vite-plugin-eslint";
 
 // Ant Design Vue 按需导入
@@ -35,7 +34,6 @@ export default defineConfig({
 	},
 	plugins: [
 		vue(),
-
 		Components({
 			resolvers: [AntDesignVueResolver()],
 		}),
