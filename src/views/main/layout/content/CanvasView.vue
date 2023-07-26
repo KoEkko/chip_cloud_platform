@@ -23,23 +23,10 @@ const terminalStore = useTerminalStore();
 const commandData = terminalStore.getResult();
 
 onMounted(() => {
-	const contianerClientWidth = ref(container.value?.clientWidth);
-
-	console.log(contianerClientWidth.value);
 	let app = new PIXI.Application({
-		width: contianerClientWidth.value,
-		height: 800,
-		backgroundColor: 0xfffff,
-		autoDensity: true,
-		resolution: window.devicePixelRatio,
+		resizeTo: wrap.value,
+		backgroundColor: 0x00000,
 	});
-	// const resizeRenderer = () => {
-	// 	const width = contianerClientWidth.value;
-	// 	console.log(width);
-	// 	app.renderer.resize(width, 720);
-	// };
-	// window.addEventListener("resize", resizeRenderer);
-	// resizeRenderer();
 
 	watch(commandData, (newValue) => {
 		const text = new PIXI.Text(newValue.data);
@@ -56,8 +43,9 @@ onMounted(() => {
 
 <style scoped>
 .wrap {
+	height: 60vh;
 	flex: 1;
-	overflow-y: auto;
-	overflow-x: auto;
+	overflow-y: hidden;
+	overflow-x: hidden;
 }
 </style>

@@ -2,16 +2,19 @@
 	<a-layout style="min-height: 100vh">
 		<!-- <TabsBar /> -->
 		<a-layout>
-			<!-- <a-layout-header style="background: #fff; padding: 0; color: black">
-				<HeaderView />
-			</a-layout-header> -->
-			<a-layout-content style="margin: 0 16px">
-				<a-breadcrumb style="margin: 16px 0">
-					<a-breadcrumb-item>工程1</a-breadcrumb-item>
-				</a-breadcrumb>
+			<div class="header">
+				<DropDown />
+			</div>
+			<a-layout-content>
+				<div class="title">Layout</div>
+				<div class="bar">
+					<div class="color">
+						<a-input class="input"></a-input>
+					</div>
+				</div>
 				<ContentView />
 			</a-layout-content>
-			<a-layout-footer style="margin: 0 16px">
+			<a-layout-footer>
 				<TerminalView class="terminal" />
 			</a-layout-footer>
 		</a-layout>
@@ -19,6 +22,7 @@
 </template>
 
 <script setup lang="ts">
+import DropDown from "./header/DropDown.vue";
 // import TabsBar from "./tabs/TabsBar.vue";
 import TerminalView from "./terminal/TerminalView.vue";
 // import HeaderView from "./header/HeaderView.vue";
@@ -29,6 +33,37 @@ import ContentView from "./content/ContentView.vue";
 </script>
 
 <style lang="scss" scoped>
+.header {
+	background-color: #fff;
+	display: flex;
+	align-items: center;
+	gap: 20px;
+}
+.title {
+	display: inline-block;
+	border: 1px solid gray;
+	background-color: #fff;
+	font-size: 16px;
+	font-weight: 800;
+	padding: 4px;
+}
+.bar {
+	display: flex;
+	align-items: center;
+	justify-content: end;
+	border-top: none;
+	border: 1px solid gray;
+	background: #fff;
+	height: 40px;
+	.color {
+		position: relative;
+		.input {
+			width: 180px;
+			height: 25px;
+			margin-right: 10px;
+		}
+	}
+}
 .ant-layout-footer {
 	padding: 0;
 }
