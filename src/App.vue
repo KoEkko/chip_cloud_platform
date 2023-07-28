@@ -10,6 +10,6 @@ import LayOut from "./views/main/layout/LayOut.vue";
 * {
 	padding: 0;
 	margin: 0;
-	overflow: hidden;
+	// overflow: hidden;
 }
 </style>

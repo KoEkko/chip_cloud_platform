@@ -8,25 +8,20 @@ import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 import { useTerminalStore } from "../../../../store/modules/getTerminal";
 
-// const WebSocketURL = "ws://118.24.150.38:84";
+const WebSocketURL = "ws://118.24.150.38:84/ws/console";
 
-// // 创建 WebSoctket 并指定一个地址
-// let ws = new WebSocket(WebSocketURL);
+// 创建 WebSoctket 并指定一个地址
+let ws = new WebSocket(WebSocketURL);
 
-// // 是否连接成功
-// ws.onopen = () => {
-// 	console.log("连接成功");
-// };
+// 是否连接成功
+ws.onopen = () => {
+	console.log("连接成功");
+};
 
-// // 监听服务端发送过来的消息
-// ws.onmessage = (messObj) => {
-// 	console.log("发送过来的消息", messObj);
-// };
-
-// // 连接失败
-// ws.onerror = () => {
-// 	console.log("连接失败");
-// };
+// 连接失败
+ws.onerror = () => {
+	console.log("连接失败");
+};
 
 const terminalStore = useTerminalStore();
 let terminal = ref(
@@ -64,16 +59,29 @@ const runFakeTerminal = async () => {
 		// 特殊按键的处理
 		if (keyDown === "Enter") {
 			// 清空上一次的命令
-			// ws.send(JSON.stringify(inputText.value));
-			await terminalStore.getCommandRes(inputText.value);
-			const commandData = terminalStore.getResult();
+			const commandData = {
+				type: "msg",
+				data: inputText.value,
+			};
+			ws.send(JSON.stringify(commandData));
 			inputText.value = "";
-			// 将log打印到terminal上
 			prompt();
-			writeln(commandData.value.data);
+			// 监听服务端发送过来的消息
+			ws.onmessage = function (messageObj) {
+				terminalStore.result = messageObj.data;
+				const resData = JSON.parse(terminalStore.result);
+				if (resData.type === "msg") {
+					// 将log打印到terminal上
+					writeln(resData.data);
+				}
+			};
+			// ! http请求的代码
+			// await terminalStore.getCommandRes(inputText.value);
+			// const commandData = terminalStore.getResult();
 		} else if (keyDown === "Backspace") {
 			// back 删除的情况
 			if (terminal.value.buffer.active.cursorX > 2) {
+				inputText.value = inputText.value.slice(0, -1);
 				terminal.value.write("\b \b");
 			}
 		} else if (printable) {

@@ -39,7 +39,7 @@ export const router: Router = createRouter({
 
 router.beforeEach(async (to, from, next) => {
 	console.log("router beforeEach");
-
+	console.log(from);
 	const userStore = useUserStoreHook();
 	const permissionStore = usePermissonStoreHook();
 	const token = localCache.getCache("token");

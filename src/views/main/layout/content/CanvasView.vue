@@ -24,20 +24,29 @@ const commandData = terminalStore.getResult();
 
 onMounted(() => {
 	let app = new PIXI.Application({
+		autoDensity: true,
 		resizeTo: wrap.value,
 		backgroundColor: 0x00000,
 	});
 
 	watch(commandData, (newValue) => {
-		const text = new PIXI.Text(newValue.data);
-		// 根据url绘制图片
-		// const texture = PIXI.Texture.from(newValue.data);
-		// const spirte = new PIXI.Sprite(texture);
-		app.stage.addChild(text);
+		const resData = JSON.parse(newValue);
+		const CanvasRes = resData?.data;
+		if (resData.type === "image") {
+			app.stage.removeChildren();
+			const texture = PIXI.Texture.from(CanvasRes);
+			const spirte = new PIXI.Sprite(texture);
+			spirte.width = 591;
+			spirte.height = 591;
+			spirte.position.x = (app.screen.width - spirte.width) / 2;
+			spirte.position.y = (app.screen.height - spirte.height) / 2;
+			app.stage.addChild(spirte);
+		} else {
+			const text = new PIXI.Text(newValue);
+			app.stage.addChild(text);
+		}
 	});
 	container.value?.appendChild(app.view as any);
-	const text = new PIXI.Text("hello world");
-	app.stage.addChild(text);
 });
 </script>
 
@@ -47,5 +56,8 @@ onMounted(() => {
 	flex: 1;
 	overflow-y: hidden;
 	overflow-x: hidden;
+}
+.wrap canvas {
+	object-fit: cover;
 }
 </style>

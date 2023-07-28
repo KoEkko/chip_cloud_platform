@@ -42,6 +42,8 @@ const getStyle = function (value: any) {
 
 <style scoped>
 .control {
+	display: flex;
+	flex-direction: column;
 	.title {
 		height: 32px;
 		font-size: 16px;

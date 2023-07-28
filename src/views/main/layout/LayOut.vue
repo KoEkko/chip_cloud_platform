@@ -1,5 +1,5 @@
 <template>
-	<a-layout style="min-height: 100vh">
+	<a-layout style="max-height: 100vh">
 		<!-- <TabsBar /> -->
 		<a-layout>
 			<div class="header">
@@ -65,6 +65,18 @@ import ContentView from "./content/ContentView.vue";
 	}
 }
 .ant-layout-footer {
+	margin-top: 10px;
+	height: 32vh;
 	padding: 0;
+}
+div#terminal-container {
+	height: 100%;
+	width: 100%;
+	.terminal.xterm.xterm-dom-renderer-owner-1 {
+		height: 100%;
+	}
+	.xterm-screen {
+		height: 100%;
+	}
 }
 </style>

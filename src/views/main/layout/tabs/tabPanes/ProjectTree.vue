@@ -73,7 +73,7 @@ const treeData = ref<TreeProps["treeData"]>([
 ]);
 
 // 保存节点信息
-let child;
+let child: any;
 let nodeDraft: EventDataNode;
 const onRightClick: TreeProps["onRightClick"] = ({ node }) => {
 	console.log(treeData.value);
