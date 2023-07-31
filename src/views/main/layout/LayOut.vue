@@ -64,6 +64,9 @@ import ContentView from "./content/ContentView.vue";
 		}
 	}
 }
+.ant-layout-content {
+	min-height: fit-content;
+}
 .ant-layout-footer {
 	margin-top: 10px;
 	height: 32vh;

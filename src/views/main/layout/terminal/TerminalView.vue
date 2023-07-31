@@ -48,8 +48,23 @@ const writeln = (str: string) => {
 	terminal.value.write(str);
 	prompt();
 };
+let maxLength = 0;
+// 清空当前命令行的内容
+const clearCurrentRow = () => {
+	terminal.value.write(`${"\b \b".repeat(maxLength)}`);
+	terminal.value.write(`${"\r"}\x1b[33m$\x1b[0m `); // 清空上次命令行的内容
+};
+
+// 命令行消息队列
+const commandQueue: string[] = [];
+// 当前命令索引
+let commandIndex = -1;
+// 是否已经有命令行了
+const isEntered = ref(false);
+// 运行终端
 const runFakeTerminal = async () => {
-	writeln("This is Web Terminal of Chip_cloud_platform; We can do it !.");
+	writeln("This is Web Terminal of Chip_Cloud_Platform!");
+	// 记录命令行最大长度，为了清空ArrowUp 或者 ArrowDown的内容
 	// 添加事件监听器，支持输入方法
 	terminal.value.onKey(async (e) => {
 		// 能够输入的按键
@@ -57,13 +72,32 @@ const runFakeTerminal = async () => {
 		// 获取键盘信息
 		let keyDown = e.domEvent.key;
 		// 特殊按键的处理
+		if (!isEntered.value) {
+			if (keyDown === "ArrowUp") {
+				terminal.value.write("\x1b[1B");
+			} else if (keyDown === "ArrowDown") {
+				terminal.value.write("\x1b[1A");
+			}
+		}
 		if (keyDown === "Enter") {
-			// 清空上一次的命令
+			if (!isEntered.value) isEntered.value = true;
+			// 保存这次的指令
+			commandQueue.push(inputText.value);
+			commandIndex++;
+			maxLength = Math.max(maxLength, inputText.value.length);
+			if (inputText.value === "clear") {
+				terminal.value.clear();
+				terminal.value.write(`${"\r"}\x1b[33m$\x1b[0m `); // 清空上次命令行的内容
+				writeln("This is Web Terminal of Chip_Cloud_Platform!");
+				inputText.value = "";
+				return;
+			}
 			const commandData = {
 				type: "msg",
 				data: inputText.value,
 			};
 			ws.send(JSON.stringify(commandData));
+			// 清空上一次的命令
 			inputText.value = "";
 			prompt();
 			// 监听服务端发送过来的消息
@@ -84,6 +118,40 @@ const runFakeTerminal = async () => {
 				inputText.value = inputText.value.slice(0, -1);
 				terminal.value.write("\b \b");
 			}
+		} else if (keyDown === "ArrowUp" || keyDown === "ArrowDown") {
+			if (keyDown === "ArrowUp" && isEntered.value) {
+				clearCurrentRow();
+				// 边界情况
+				if (commandIndex > 0) {
+					let cmd = "";
+					cmd = commandQueue[commandIndex];
+					terminal.value.write(cmd);
+					terminal.value.write("\x1b[1B");
+					inputText.value = cmd;
+					commandIndex -= 1;
+				} else {
+					terminal.value.write(commandQueue[0]);
+					terminal.value.write("\x1b[1B");
+					inputText.value = commandQueue[0];
+				}
+			} else if (keyDown === "ArrowDown" && isEntered.value) {
+				clearCurrentRow();
+				if (commandIndex < commandQueue.length - 1) {
+					commandIndex += 1;
+					let cmd = "";
+					cmd = commandQueue[commandIndex];
+					terminal.value.write(cmd);
+					terminal.value.write("\x1b[1A");
+					inputText.value = cmd;
+				} else {
+					terminal.value.write(commandQueue[commandQueue.length - 1]);
+					terminal.value.write("\x1b[1A");
+					inputText.value = commandQueue[commandQueue.length - 1];
+				}
+			}
+		} else if (keyDown === "ArrowRight" || keyDown === "ArrowLeft") {
+			inputText.value = inputText.value.slice(0, -1);
+			terminal.value.write("\b ");
 		} else if (printable) {
 			inputText.value += keyDown;
 			// 不是回车和删除就是输入，写入 terminal

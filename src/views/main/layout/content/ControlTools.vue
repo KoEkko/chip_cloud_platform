@@ -52,7 +52,8 @@ const getStyle = function (value: any) {
 		padding: 4px 0 4px 4px;
 	}
 	.check-box {
-		width: 300px;
+		min-width: 250px;
+		width: 12vw;
 		height: calc(100% - 32px);
 		border: 1px solid gray;
 		background-color: #fff;
