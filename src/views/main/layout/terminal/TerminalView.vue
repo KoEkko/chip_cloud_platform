@@ -28,7 +28,7 @@ let terminal = ref(
 	new Terminal({
 		convertEol: true,
 		disableStdin: false,
-		cursorBlink: true,
+		cursorBlink: false,
 		theme: {
 			background: "#000000",
 			foreground: "#FFFFFF",
@@ -61,6 +61,7 @@ const commandQueue: string[] = [];
 let commandIndex = -1;
 // 是否已经有命令行了
 const isEntered = ref(false);
+const disabledKey = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
 // 运行终端
 const runFakeTerminal = async () => {
 	writeln("This is Web Terminal of Chip_Cloud_Platform!");
@@ -71,8 +72,9 @@ const runFakeTerminal = async () => {
 		const printable = !e.domEvent.altKey && !e.domEvent.ctrlKey && !e.domEvent.metaKey;
 		// 获取键盘信息
 		let keyDown = e.domEvent.key;
-		// 特殊按键的处理
+
 		if (!isEntered.value) {
+			// 特殊按键的处理
 			if (keyDown === "ArrowUp") {
 				terminal.value.write("\x1b[1B");
 			} else if (keyDown === "ArrowDown") {
@@ -124,11 +126,14 @@ const runFakeTerminal = async () => {
 				// 边界情况
 				if (commandIndex > 0) {
 					let cmd = "";
-					cmd = commandQueue[commandIndex];
+					cmd = commandQueue[commandIndex--];
 					terminal.value.write(cmd);
 					terminal.value.write("\x1b[1B");
 					inputText.value = cmd;
-					commandIndex -= 1;
+				} else if (commandIndex === commandQueue.length - 1 && commandIndex !== 0) {
+					terminal.value.write(commandQueue[--commandIndex]);
+					terminal.value.write("\x1b[1B");
+					inputText.value = commandQueue[--commandIndex];
 				} else {
 					terminal.value.write(commandQueue[0]);
 					terminal.value.write("\x1b[1B");
@@ -137,30 +142,34 @@ const runFakeTerminal = async () => {
 			} else if (keyDown === "ArrowDown" && isEntered.value) {
 				clearCurrentRow();
 				if (commandIndex < commandQueue.length - 1) {
-					commandIndex += 1;
 					let cmd = "";
-					cmd = commandQueue[commandIndex];
+					cmd = commandQueue[++commandIndex];
 					terminal.value.write(cmd);
 					terminal.value.write("\x1b[1A");
 					inputText.value = cmd;
-				} else {
+				} else if (commandIndex === commandQueue.length - 1) {
 					terminal.value.write(commandQueue[commandQueue.length - 1]);
 					terminal.value.write("\x1b[1A");
 					inputText.value = commandQueue[commandQueue.length - 1];
 				}
 			}
-		} else if (keyDown === "ArrowRight" || keyDown === "ArrowLeft") {
-			inputText.value = inputText.value.slice(0, -1);
-			terminal.value.write("\b ");
 		} else if (printable) {
-			inputText.value += keyDown;
-			// 不是回车和删除就是输入，写入 terminal
-			terminal.value.write(e.key);
+			if (!disabledKey.includes(keyDown)) {
+				inputText.value += keyDown;
+				terminal.value.write(keyDown);
+			}
 		}
 	});
 	terminal.value.onData((key) => {
+		if (key === "ArrowUp") {
+			terminal.value.write("\x1b[1B");
+		} else if (key === "ArrowDown") {
+			terminal.value.write("\x1b[1A");
+		} else if (key.length > 1) {
+			terminal.value.write(key);
+		}
 		// 粘贴的情况
-		if (key.length > 1) terminal.value.write(key);
+		// if (key.length > 1) terminal.value.write(key);
 	});
 };
 

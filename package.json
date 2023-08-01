@@ -8,8 +8,7 @@
 		"build": "vue-tsc && vite build",
 		"preview": "vite preview",
 		"lint:eslint": "eslint \"src/**/*.{vue,ts,js}\" --fix",
-		"lint:prettier": "prettier --write \"**/*.{js,ts,json,css,less,scss,vue,html,md,cjs}\"",
-		"prepare": "husky install"
+		"lint:prettier": "prettier --write \"**/*.{js,ts,json,css,less,scss,vue,html,md,cjs}\""
 	},
 	"dependencies": {
 		"@ant-design/icons-vue": "^6.1.0",
