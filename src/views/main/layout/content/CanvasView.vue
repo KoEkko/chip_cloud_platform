@@ -66,8 +66,8 @@ onMounted(() => {
 <style scoped>
 .wrap {
 	z-index: 99;
-	height: 60vh;
 	flex: 1;
+	height: 59vh;
 	overflow: hidden;
 	background: #000;
 	display: flex;
@@ -78,10 +78,11 @@ onMounted(() => {
 		align-items: center;
 		justify-content: center;
 		height: 100%;
+		overflow: hidden;
 	}
 	.container img {
 		width: 100%;
-		height: 100%;
+		height: 130%;
 	}
 }
 </style>
