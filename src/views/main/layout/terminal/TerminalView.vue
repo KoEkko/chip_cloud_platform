@@ -54,15 +54,13 @@ let maxLength = 0;
 // 清空当前命令行的内容
 const clearCurrentRow = () => {
 	terminal.value.write(`${"\b \b".repeat(maxLength)}`);
-	terminal.value.write("\r\x1b[33m$\x1b[0m "); // 清空上次命令行的内容
+	terminal.value.write("\r\x1b[33m$\x1b[0m ");
 };
 
 // 命令行消息队列
 const commandQueue: string[] = [];
 // 当前命令索引
 let commandIndex = -1;
-// 是否已经有命令行了
-const isEntered = ref(false);
 // 不显示的Key
 const disabledKey = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
 // 运行终端
@@ -74,24 +72,15 @@ const runFakeTerminal = async () => {
 		const printable = !e.domEvent.altKey && !e.domEvent.ctrlKey && !e.domEvent.metaKey;
 		// 获取键盘信息
 		let keyDown = e.domEvent.key;
-
-		if (!isEntered.value) {
-			// 特殊按键的处理
-			if (keyDown === "ArrowUp") {
-				terminal.value.write("\x1b[1B");
-			} else if (keyDown === "ArrowDown") {
-				terminal.value.write("\x1b[1A");
-			}
-		}
 		if (keyDown === "Enter") {
-			if (!isEntered.value) isEntered.value = true;
 			// 保存这次的指令
 			commandQueue.push(inputText.value);
 			commandIndex = commandQueue.length;
+			// 数组中最长的命令
 			maxLength = Math.max(maxLength, inputText.value.length);
 			if (inputText.value === "clear") {
 				terminal.value.clear();
-				terminal.value.write(`${"\r"}\x1b[33m$\x1b[0m `); // 清空上次命令行的内容
+				terminal.value.write(`${"\r"}\x1b[33m$\x1b[0m `);
 				writeln("This is Web Terminal of Chip_Cloud_Platform!");
 				inputText.value = "";
 				return;
@@ -123,18 +112,16 @@ const runFakeTerminal = async () => {
 				terminal.value.write("\b \b");
 			}
 		} else if (keyDown === "ArrowUp" || keyDown === "ArrowDown") {
-			e.domEvent.preventDefault();
-			if (keyDown === "ArrowUp" && isEntered.value) {
+			if (keyDown === "ArrowUp" && commandQueue.length > 0) {
 				clearCurrentRow();
 				commandIndex = Math.max(commandIndex - 1, 0);
 				let cmd = commandQueue[commandIndex];
 				terminal.value.write(cmd);
 				inputText.value = cmd;
-			} else if (keyDown === "ArrowDown" && isEntered.value) {
+			} else if (keyDown === "ArrowDown" && commandQueue.length > 0) {
 				clearCurrentRow();
 				commandIndex = Math.min(commandIndex + 1, commandQueue.length - 1);
 				let cmd = commandQueue[commandIndex];
-				console.log(commandIndex);
 				terminal.value.write(cmd);
 				inputText.value = cmd;
 			}
@@ -146,7 +133,7 @@ const runFakeTerminal = async () => {
 		}
 	});
 	terminal.value.onData((key) => {
-		if (key.length > 1) {
+		if (key.length) {
 			return;
 		}
 	});
