@@ -18,6 +18,5 @@ declare module 'vue' {
     ProjectComponent: typeof import('./src/components/ProjectComponent/ProjectComponent.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
-    Xterminal: typeof import('./src/components/xterminal/index.vue')['default']
   }
 }
