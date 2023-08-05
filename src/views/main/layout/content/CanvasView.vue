@@ -1,18 +1,16 @@
 <template>
 	<div ref="wrap" class="wrap">
-		<div ref="container" class="container">
-			<template v-if="isImage"><img :src="CanvasRes" alt="" /></template>
-		</div>
+		<div ref="container" class="container"></div>
 	</div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from "vue";
-// import * as PIXI from "pixi.js";
+import { onMounted, ref, watch } from "vue";
+import * as PIXI from "pixi.js";
+import { throttle } from "lodash-es";
 import { useTerminalStore } from "../../../../store/modules/getTerminal";
 
 const wrap = ref<HTMLBodyElement>();
-
 const container = ref<HTMLBodyElement>();
 
 // function handleCanvasClear() {
@@ -23,53 +21,52 @@ const container = ref<HTMLBodyElement>();
 // defineExpose({ handleCanvasClear });
 const terminalStore = useTerminalStore();
 const commandData = terminalStore.getResult();
-const isImage = ref(false);
-const CanvasRes = ref("");
+console.log(commandData);
 onMounted(() => {
-	watch(commandData, (newValue) => {
-		const resData = JSON.parse(newValue);
-		if (resData.type === "image") {
-			CanvasRes.value = resData?.data;
-			isImage.value = true;
-		}
+	const app = new PIXI.Application({
+		background: "#000000",
+		autoDensity: true,
+		resolution: window.devicePixelRatio,
+		width: wrap.value?.clientWidth,
+		height: wrap.value?.clientHeight,
 	});
+
+	const url = ref("../../../../../public/vite.svg");
+	setTimeout(() => {
+		url.value = "../../../../../public/kxy.png";
+	}, 2000);
+	wrap.value?.appendChild(app.view as any);
+	let texturePromise = PIXI.Assets.load(url.value);
+	watch(
+		url,
+		(newValue) => {
+			texturePromise = PIXI.Assets.load(newValue);
+			texturePromise.then((resolveTexture) => {
+				const bunny = PIXI.Sprite.from(resolveTexture);
+				bunny.anchor.set(0.5);
+				bunny.x = app.screen.width / 2;
+				bunny.y = app.screen.height / 2;
+				function resizeHandler() {
+					app.renderer.resize(wrap.value!.clientWidth, wrap.value!.clientHeight);
+					bunny.x = app.screen.width / 2;
+					bunny.y = app.screen.height / 2;
+				}
+				const throttle_Resize = throttle(resizeHandler, 200);
+				window.addEventListener("resize", throttle_Resize);
+				app.stage.addChild(bunny);
+			});
+		},
+		{ immediate: true }
+	);
 });
-
-// onMounted(() => {
-// 	let app = new PIXI.Application({
-// 		autoDensity: true,
-// 		resizeTo: wrap.value,
-// 		backgroundColor: 0x00000,
-// 	});
-
-// 	watch(commandData, (newValue) => {
-// 		const resData = JSON.parse(newValue);
-// 		const CanvasRes = resData?.data;
-// 		if (resData.type === "image") {
-// 			app.stage.removeChildren();
-// 			const texture = PIXI.Texture.from(CanvasRes);
-// 			const spirte = new PIXI.Sprite(texture);
-// 			spirte.width = 591;
-// 			spirte.height = 591;
-// 			spirte.position.x = (app.screen.width - spirte.width) / 2;
-// 			spirte.position.y = (app.screen.height - spirte.height) / 2;
-// 			app.stage.addChild(spirte);
-// 		} else {
-// 			const text = new PIXI.Text(newValue);
-// 			app.stage.addChild(text);
-// 		}
-// 	});
-// 	container.value?.appendChild(app.view as any);
-// });
 </script>
 
 <style scoped>
 .wrap {
 	z-index: 99;
 	flex: 1;
-	height: 59vh;
+	height: 60vh;
 	overflow: hidden;
-	background: #000;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -78,11 +75,8 @@ onMounted(() => {
 		align-items: center;
 		justify-content: center;
 		height: 100%;
-		overflow: hidden;
-	}
-	.container img {
 		width: 100%;
-		height: 130%;
+		overflow: hidden;
 	}
 }
 </style>
