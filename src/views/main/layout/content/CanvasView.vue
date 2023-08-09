@@ -35,24 +35,21 @@ onMounted(async () => {
 	graphics.lineStyle(1, 0xffffff, 1);
 	const width = app.screen.width;
 	const height = app.screen.height;
-	const cols = Math.ceil(Math.floor(width / 5));
-	const rows = Math.ceil(Math.floor(height / 5));
-	const gapArr = [];
-	for (let i = 0; i < 5; i++) {
-		const start = performance.now();
-		for (let i = 0; i < 100000; i++) {
-			graphics.drawRect((i % cols) * 5, Math.floor(i / rows) * 5, i % 5, i % 5);
-		}
-		const end = performance.now();
-		const gap = Number((end - start).toFixed(5));
-		gapArr.push(gap);
-
-		graphics.clear();
+	const start = performance.now();
+	for (let i = 0; i < 10000; i++) {
+		const x = Math.random() * width;
+		const y = Math.random() * height;
+		const w = Math.random() * 50 + 10;
+		const h = Math.random() * 50 + 10;
+		const color = Math.random() * 0xffffff;
+		graphics.beginFill(color);
+		graphics.drawRect(x, y, w, h);
+		graphics.endFill();
 	}
-	const total = gapArr.reduce((prev, curr) => {
-		return prev + curr;
-	}, 0);
-	console.log(total / 5);
+	const end = performance.now();
+	app.stage.addChild(graphics);
+	const gap = Number((end - start).toFixed(5));
+	console.log(gap);
 	// const sheet = await PIXI.Assets.load("");
 	// const bunny = new PIXI.Sprite(sheet);
 	// bunny.anchor.set(0.5);
@@ -65,7 +62,6 @@ onMounted(async () => {
 	// }
 	// const throttle_Resize = throttle(resizeHandler, 200);
 	// window.addEventListener("resize", throttle_Resize);
-	app.stage.addChild(graphics);
 });
 </script>
 
