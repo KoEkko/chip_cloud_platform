@@ -36,7 +36,7 @@ onMounted(async () => {
 	const width = app.screen.width;
 	const height = app.screen.height;
 	const start = performance.now();
-	for (let i = 0; i < 10000; i++) {
+	for (let i = 0; i < 100; i++) {
 		const x = Math.random() * width;
 		const y = Math.random() * height;
 		const w = Math.random() * 50 + 10;
@@ -50,18 +50,6 @@ onMounted(async () => {
 	app.stage.addChild(graphics);
 	const gap = Number((end - start).toFixed(5));
 	console.log(gap);
-	// const sheet = await PIXI.Assets.load("");
-	// const bunny = new PIXI.Sprite(sheet);
-	// bunny.anchor.set(0.5);
-	// bunny.x = app.screen.width / 2;
-	// bunny.y = app.screen.height / 2;
-	// function resizeHandler() {
-	// 	app.renderer.resize(wrap.value!.clientWidth, wrap.value!.clientHeight);
-	// 	bunny.x = app.screen.width / 2;
-	// 	bunny.y = app.screen.height / 2;
-	// }
-	// const throttle_Resize = throttle(resizeHandler, 200);
-	// window.addEventListener("resize", throttle_Resize);
 });
 </script>
 

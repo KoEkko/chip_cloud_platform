@@ -1,10 +1,8 @@
 <template>
-	<LayOut />
+	<RouterView />
 </template>
 
-<script setup lang="ts">
-import LayOut from "./views/main/layout/LayOut.vue";
-</script>
+<script setup lang="ts"></script>
 
 <style lang="scss" scoped>
 * {
