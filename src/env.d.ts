@@ -6,3 +6,5 @@ declare module "*.vue" {
 }
 
 declare module "lodash-es";
+
+declare module "uuid";

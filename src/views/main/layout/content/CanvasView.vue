@@ -5,51 +5,101 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import * as PIXI from "pixi.js";
-// import { throttle } from "lodash-es";
+import { throttle } from "lodash-es";
+const props = defineProps<{
+	id: number | undefined;
+}>();
+
 // import { useTerminalStore } from "../../../../store/modules/getTerminal";
+import { useShapeStore } from "../../../../store/modules/shape";
 
 const wrap = ref<HTMLBodyElement>();
-const container = ref<HTMLBodyElement>();
-
-// function handleCanvasClear() {
-// 	// 清空画布
-// 	app.stage.removeChildren();
-// }
-
-// defineExpose({ handleCanvasClear });
-// const terminalStore = useTerminalStore();
-// const commandData = terminalStore.getResult();
-onMounted(async () => {
-	const app = new PIXI.Application({
-		background: "#000000",
-		autoDensity: true,
-		resolution: window.devicePixelRatio,
-		width: wrap.value?.clientWidth,
-		height: wrap.value?.clientHeight,
-		antialias: true,
+const { getResult, ChangeVisible } = useShapeStore();
+const shapes = getResult();
+interface _Graphics extends PIXI.Graphics {
+	id: number;
+	visible: boolean;
+}
+const app = new PIXI.Application({
+	background: "#000000",
+	autoDensity: true,
+	resolution: window.devicePixelRatio,
+	antialias: true,
+});
+// 自适应
+function resizeRender() {
+	const width = wrap.value!.clientWidth;
+	const height = wrap.value!.clientHeight;
+	app.renderer.resize(width, height);
+}
+const throttleResizeRender = throttle(resizeRender, 200);
+window.addEventListener("resize", throttleResizeRender);
+const container = new PIXI.Container();
+container.sortableChildren = true;
+const shapeGrahpicArr = shapes.value.map(({ zIndex, position, color, id, visible }) => {
+	const graphics = new PIXI.Graphics() as _Graphics;
+	const [x, y, width, height] = position;
+	graphics.beginFill(color);
+	graphics.drawRect(x, y, width, height);
+	graphics.zIndex = zIndex;
+	Object.defineProperties(graphics, {
+		id: {
+			value: id,
+			writable: true,
+			enumerable: true,
+			configurable: true,
+		},
+		visible: {
+			value: visible,
+			writable: true,
+			enumerable: true,
+			configurable: true,
+		},
 	});
-	wrap.value?.appendChild(app.view as any);
-	const graphics = new PIXI.Graphics();
-	graphics.lineStyle(1, 0xffffff, 1);
-	const width = app.screen.width;
-	const height = app.screen.height;
-	const start = performance.now();
-	for (let i = 0; i < 100; i++) {
-		const x = Math.random() * width;
-		const y = Math.random() * height;
-		const w = Math.random() * 50 + 10;
-		const h = Math.random() * 50 + 10;
-		const color = Math.random() * 0xffffff;
-		graphics.beginFill(color);
-		graphics.drawRect(x, y, w, h);
-		graphics.endFill();
+	return graphics;
+});
+
+watch(
+	() => props.id,
+	(newValue) => {
+		if (newValue) {
+			const item = shapeGrahpicArr.find((child) => {
+				return child?.id === newValue;
+			});
+			if (item) {
+				if (item?.visible) {
+					ChangeVisible(newValue);
+					console.log(item.visible);
+					item.clear();
+				} else {
+					ChangeVisible(newValue);
+					console.log(item.visible);
+					const { x, y, width, height } = item;
+					item.drawRect(x, y, width, height);
+				}
+			}
+		}
 	}
-	const end = performance.now();
-	app.stage.addChild(graphics);
-	const gap = Number((end - start).toFixed(5));
-	console.log(gap);
+);
+watch(
+	shapes.value,
+	(newValue) => {
+		console.log(newValue);
+	},
+	{
+		deep: true,
+	}
+);
+onMounted(async () => {
+	const width = wrap.value!.clientWidth;
+	const height = wrap.value!.clientHeight;
+	app.renderer.resize(width, height);
+	wrap.value?.appendChild(app.view as any);
+
+	container.addChild(...shapeGrahpicArr);
+	app.stage.addChild(container);
 });
 </script>
 

@@ -8,11 +8,11 @@
 				<div class="c3">V</div>
 			</div>
 			<div class="c_box">
-				<template v-for="child in options" :key="child.label">
+				<template v-for="child in options" :key="child.id">
 					<div class="item">
 						<div class="i1"></div>
 						<div :class="[{ i2: getStyle(child) }, { i22: !getStyle(child) }]">{{ child.value }}</div>
-						<div class="i3"><input id="" type="checkbox" /></div>
+						<div class="i3"><input type="checkbox" @click="inputClick(child.id)" /></div>
 					</div>
 				</template>
 			</div>
@@ -21,23 +21,35 @@
 </template>
 
 <script setup lang="ts">
-// import { ref } from "vue";
+import { ref } from "vue";
 // const state = ref([]);
-const options = [
-	{ label: "A", value: "Shape", pid: "1" },
-	{ label: "B", value: "Instance Pin" },
-	{ label: "C", value: "Instance Obs" },
-	{ label: "D", value: "Instance Pdn" },
-	{ label: "E", value: "IO Pin" },
-	{ label: "F", value: "Instance", pid: "2" },
-	{ label: "G", value: "Standard Cell" },
-	{ label: "H", value: "IO Cell" },
-	{ label: "I", value: "Block" },
-	{ label: "J", value: "Pad" },
-];
+import { v4 as uuidv4 } from "uuid";
+import { useShapeStore } from "../../../../store/modules/shape";
+const _id = ref(0);
+const inputClick = (id: number) => {
+	_id.value = id;
+};
+defineExpose({ _id });
+const shapeStore = useShapeStore();
+const shapes = shapeStore.getResult();
+
+const options = ref([
+	{ id: uuidv4(), value: "Shape", pid: "1" },
+	{ id: uuidv4(), value: "Instance Pin" },
+	{ id: uuidv4(), value: "Instance Obs" },
+	{ id: uuidv4(), value: "Instance Pdn" },
+	{ id: uuidv4(), value: "IO Pin" },
+	{ id: uuidv4(), value: "Instance", pid: "2" },
+	{ id: uuidv4(), value: "Standard Cell" },
+	{ id: uuidv4(), value: "IO Cell" },
+	{ id: uuidv4(), value: "Block" },
+	{ id: uuidv4(), value: "Pad" },
+	{ id: uuidv4(), value: "Display", pid: "3" },
+]);
 const getStyle = function (value: any) {
 	return !!value.pid;
 };
+options.value = options.value.concat(shapes.value);
 </script>
 
 <style scoped>

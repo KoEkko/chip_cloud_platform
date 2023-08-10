@@ -23,13 +23,8 @@
 
 <script setup lang="ts">
 import DropDown from "./header/DropDown.vue";
-// import TabsBar from "./tabs/TabsBar.vue";
 import TerminalView from "./terminal/TerminalView.vue";
-// import HeaderView from "./header/HeaderView.vue";
 import ContentView from "./content/ContentView.vue";
-// function handlerClear() {
-// 	contentRef.value?.handleCanvasClear();
-// }
 </script>
 
 <style lang="scss" scoped>
