@@ -12,7 +12,7 @@
 					<div class="item">
 						<div class="i1"></div>
 						<div :class="[{ i2: getStyle(child) }, { i22: !getStyle(child) }]">{{ child.value }}</div>
-						<div class="i3"><input type="checkbox" @click="inputClick(child.id)" /></div>
+						<div class="i3"><input type="checkbox" @click="inputClick(child.value)" /></div>
 					</div>
 				</template>
 			</div>
@@ -26,24 +26,24 @@ import { v4 as uuidv4 } from "uuid";
 import { useShapeStore } from "../../../../store/modules/shape";
 import * as PIXI from "pixi.js";
 
-const { getResult, getShapeGraphicArr, getContainer } = useShapeStore();
-const shapes = getResult();
+const { getShapeGraphicArr, getContainer } = useShapeStore();
 const shapeGrahpicArr = getShapeGraphicArr();
 let hiddenItems: string[] = [];
 const container: PIXI.Container = getContainer();
-const inputClick = (id: string) => {
-	const item = shapeGrahpicArr.find((child) => {
-		return child.id === id;
-	});
-	if (item) {
-		const graphics = item.graphics;
-		if (hiddenItems.includes(id)) {
-			container.addChild(graphics);
-			hiddenItems = hiddenItems.filter((i) => i !== id);
-		} else {
-			container.removeChild(graphics);
-			hiddenItems.push(id);
-		}
+const inputClick = (value: string) => {
+	const filterArray = shapeGrahpicArr.filter((item) => item.category.includes(value));
+	if (filterArray) {
+		filterArray.forEach((item) => {
+			const id = item.id;
+			const graphics = item.graphics;
+			if (hiddenItems.includes(id)) {
+				container.addChild(graphics);
+				hiddenItems = hiddenItems.filter((i) => i !== id);
+			} else {
+				container.removeChild(graphics);
+				hiddenItems.push(id);
+			}
+		});
 	}
 };
 
@@ -58,12 +58,14 @@ const options = ref([
 	{ id: uuidv4(), value: "IO Cell" },
 	{ id: uuidv4(), value: "Block" },
 	{ id: uuidv4(), value: "Pad" },
-	{ id: uuidv4(), value: "Display", pid: "3" },
+	{ id: uuidv4(), value: "Net", pid: "3" },
+	{ id: uuidv4(), value: "Signal" },
+	{ id: uuidv4(), value: "Clock" },
+	{ id: uuidv4(), value: "Power" },
 ]);
 const getStyle = function (value: any) {
 	return !!value.pid;
 };
-options.value = options.value.concat(shapes.value);
 </script>
 
 <style scoped>

@@ -8,6 +8,7 @@ interface IShape {
 	zIndex: number;
 	position: number[];
 	color: number;
+	category: string[];
 }
 interface IGraphic {
 	graphics: PIXI.Graphics;
@@ -18,7 +19,9 @@ interface IGraphic {
 	height: number;
 	color: number;
 	zIndex: number;
+	category: string[];
 }
+
 export const useShapeStore = defineStore("shapeStore", () => {
 	const shapes = ref<IShape[]>([
 		{
@@ -27,6 +30,7 @@ export const useShapeStore = defineStore("shapeStore", () => {
 			zIndex: 0,
 			position: [300, 300, 200, 100],
 			color: 0xfff000,
+			category: ["Clock", "Pad", "Block"],
 		},
 		{
 			id: uuidv4(),
@@ -34,6 +38,7 @@ export const useShapeStore = defineStore("shapeStore", () => {
 			zIndex: 4,
 			position: [350, 300, 100, 100],
 			color: 0xffffff,
+			category: ["Clock", "IO Cell"],
 		},
 		{
 			id: uuidv4(),
@@ -41,6 +46,7 @@ export const useShapeStore = defineStore("shapeStore", () => {
 			zIndex: 2,
 			position: [300, 350, 100, 100],
 			color: 0xff1000,
+			category: ["Clock", "IO Cell", "Block"],
 		},
 	]);
 	let shapeGraphicArr: IGraphic[] = [];

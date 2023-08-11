@@ -34,7 +34,7 @@ window.addEventListener("resize", throttleResizeRender);
 const container = new PIXI.Container();
 useContainer(container);
 container.sortableChildren = true;
-const shapeGrahpicArr = shapes.value.map(({ zIndex, position, color, id }) => {
+const shapeGrahpicArr = shapes.value.map(({ zIndex, position, color, id, category }) => {
 	const graphics = new PIXI.Graphics();
 	Object.defineProperty(graphics, "id", {
 		value: id,
@@ -47,7 +47,7 @@ const shapeGrahpicArr = shapes.value.map(({ zIndex, position, color, id }) => {
 	graphics.beginFill(color);
 	graphics.drawRect(rect.x, rect.y, width, height);
 	graphics.zIndex = zIndex;
-	return { graphics, id, x, y, width, height, color, zIndex };
+	return { graphics, id, x, y, width, height, color, zIndex, category };
 });
 useFillShapeGraphicArr(shapeGrahpicArr);
 onMounted(async () => {
