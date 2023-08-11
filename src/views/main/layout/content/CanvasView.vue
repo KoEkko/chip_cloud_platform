@@ -5,23 +5,17 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
+import { onMounted, ref } from "vue";
 import * as PIXI from "pixi.js";
 import { throttle } from "lodash-es";
-const props = defineProps<{
-	id: number | undefined;
-}>();
 
 // import { useTerminalStore } from "../../../../store/modules/getTerminal";
 import { useShapeStore } from "../../../../store/modules/shape";
 
 const wrap = ref<HTMLBodyElement>();
-const { getResult, ChangeVisible } = useShapeStore();
+const { getResult, useFillShapeGraphicArr, useContainer } = useShapeStore();
 const shapes = getResult();
-interface _Graphics extends PIXI.Graphics {
-	id: number;
-	visible: boolean;
-}
+
 const app = new PIXI.Application({
 	background: "#000000",
 	autoDensity: true,
@@ -36,69 +30,35 @@ function resizeRender() {
 }
 const throttleResizeRender = throttle(resizeRender, 200);
 window.addEventListener("resize", throttleResizeRender);
-const container = new PIXI.Container();
-container.sortableChildren = true;
-const shapeGrahpicArr = shapes.value.map(({ zIndex, position, color, id, visible }) => {
-	const graphics = new PIXI.Graphics() as _Graphics;
-	const [x, y, width, height] = position;
-	graphics.beginFill(color);
-	graphics.drawRect(x, y, width, height);
-	graphics.zIndex = zIndex;
-	Object.defineProperties(graphics, {
-		id: {
-			value: id,
-			writable: true,
-			enumerable: true,
-			configurable: true,
-		},
-		visible: {
-			value: visible,
-			writable: true,
-			enumerable: true,
-			configurable: true,
-		},
-	});
-	return graphics;
-});
 
-watch(
-	() => props.id,
-	(newValue) => {
-		if (newValue) {
-			const item = shapeGrahpicArr.find((child) => {
-				return child?.id === newValue;
-			});
-			if (item) {
-				if (item?.visible) {
-					ChangeVisible(newValue);
-					console.log(item.visible);
-					item.clear();
-				} else {
-					ChangeVisible(newValue);
-					console.log(item.visible);
-					const { x, y, width, height } = item;
-					item.drawRect(x, y, width, height);
-				}
-			}
-		}
-	}
-);
-watch(
-	shapes.value,
-	(newValue) => {
-		console.log(newValue);
-	},
-	{
-		deep: true,
-	}
-);
+const container = new PIXI.Container();
+useContainer(container);
+container.sortableChildren = true;
+const shapeGrahpicArr = shapes.value.map(({ zIndex, position, color, id }) => {
+	const graphics = new PIXI.Graphics();
+	Object.defineProperty(graphics, "id", {
+		value: id,
+		writable: true,
+		enumerable: true,
+		configurable: true,
+	});
+	const [x, y, width, height] = position;
+	const rect = new PIXI.Rectangle(x, y, width, height);
+	graphics.beginFill(color);
+	graphics.drawRect(rect.x, rect.y, width, height);
+	graphics.zIndex = zIndex;
+	return { graphics, id, x, y, width, height, color, zIndex };
+});
+useFillShapeGraphicArr(shapeGrahpicArr);
 onMounted(async () => {
 	const width = wrap.value!.clientWidth;
 	const height = wrap.value!.clientHeight;
 	app.renderer.resize(width, height);
 	wrap.value?.appendChild(app.view as any);
-
-	container.addChild(...shapeGrahpicArr);
+	const shapes = shapeGrahpicArr.map((item) => {
+		return item.graphics;
+	});
+	container.addChild(...shapes);
 	app.stage.addChild(container);
 });
 </script>

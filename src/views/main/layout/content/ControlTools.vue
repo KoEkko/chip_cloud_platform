@@ -22,16 +22,30 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-// const state = ref([]);
 import { v4 as uuidv4 } from "uuid";
 import { useShapeStore } from "../../../../store/modules/shape";
-const _id = ref(0);
-const inputClick = (id: number) => {
-	_id.value = id;
+import * as PIXI from "pixi.js";
+
+const { getResult, getShapeGraphicArr, getContainer } = useShapeStore();
+const shapes = getResult();
+const shapeGrahpicArr = getShapeGraphicArr();
+let hiddenItems: string[] = [];
+const container: PIXI.Container = getContainer();
+const inputClick = (id: string) => {
+	const item = shapeGrahpicArr.find((child) => {
+		return child.id === id;
+	});
+	if (item) {
+		const graphics = item.graphics;
+		if (hiddenItems.includes(id)) {
+			container.addChild(graphics);
+			hiddenItems = hiddenItems.filter((i) => i !== id);
+		} else {
+			container.removeChild(graphics);
+			hiddenItems.push(id);
+		}
+	}
 };
-defineExpose({ _id });
-const shapeStore = useShapeStore();
-const shapes = shapeStore.getResult();
 
 const options = ref([
 	{ id: uuidv4(), value: "Shape", pid: "1" },
