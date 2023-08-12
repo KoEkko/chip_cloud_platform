@@ -15,7 +15,10 @@ import { useShapeStore } from "../../../../store/modules/shape";
 const wrap = ref<HTMLBodyElement>();
 const { getResult, useFillShapeGraphicArr, useContainer } = useShapeStore();
 const shapes = getResult();
-
+const props = defineProps<{
+	val: string | undefined;
+}>();
+console.log(props.val);
 const app = new PIXI.Application({
 	background: "#000000",
 	autoDensity: true,
@@ -49,6 +52,25 @@ const shapeGrahpicArr = shapes.value.map(({ zIndex, position, color, id, categor
 	graphics.zIndex = zIndex;
 	return { graphics, id, x, y, width, height, color, zIndex, category };
 });
+let hiddenItems: string[] = [];
+const exposeFliterArr = (value: string) => {
+	console.log("==========");
+	const filterArray = shapeGrahpicArr.filter((item) => item.category.includes(value));
+	if (filterArray) {
+		filterArray.forEach((item) => {
+			const id = item.id;
+			const graphics = item.graphics;
+			if (hiddenItems.includes(id)) {
+				container.addChild(graphics);
+				hiddenItems = hiddenItems.filter((i) => i !== id);
+			} else {
+				container.removeChild(graphics);
+				hiddenItems.push(id);
+			}
+		});
+	}
+};
+defineExpose({ exposeFliterArr });
 useFillShapeGraphicArr(shapeGrahpicArr);
 onMounted(async () => {
 	const width = wrap.value!.clientWidth;

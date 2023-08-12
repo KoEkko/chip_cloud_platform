@@ -23,29 +23,33 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { v4 as uuidv4 } from "uuid";
-import { useShapeStore } from "../../../../store/modules/shape";
-import * as PIXI from "pixi.js";
+// import { useShapeStore } from "../../../../store/modules/shape";
+// import * as PIXI from "pixi.js";
 
-const { getShapeGraphicArr, getContainer } = useShapeStore();
-const shapeGrahpicArr = getShapeGraphicArr();
-let hiddenItems: string[] = [];
-const container: PIXI.Container = getContainer();
+// const { getShapeGraphicArr, getContainer } = useShapeStore();
+// const shapeGrahpicArr = getShapeGraphicArr();
+// let hiddenItems: string[] = [];
+// const container: PIXI.Container = getContainer();
+const categoryValue = ref<string>("");
 const inputClick = (value: string) => {
-	const filterArray = shapeGrahpicArr.filter((item) => item.category.includes(value));
-	if (filterArray) {
-		filterArray.forEach((item) => {
-			const id = item.id;
-			const graphics = item.graphics;
-			if (hiddenItems.includes(id)) {
-				container.addChild(graphics);
-				hiddenItems = hiddenItems.filter((i) => i !== id);
-			} else {
-				container.removeChild(graphics);
-				hiddenItems.push(id);
-			}
-		});
-	}
+	categoryValue.value = value;
+	// const filterArray = shapeGrahpicArr.filter((item) => item.category.includes(value));
+	// if (filterArray) {
+	// 	filterArray.forEach((item) => {
+	// 		const id = item.id;
+	// 		const graphics = item.graphics;
+	// 		if (hiddenItems.includes(id)) {
+	// 			container.addChild(graphics);
+	// 			hiddenItems = hiddenItems.filter((i) => i !== id);
+	// 		} else {
+	// 			container.removeChild(graphics);
+	// 			hiddenItems.push(id);
+	// 		}
+	// 	});
+	// }
 };
+const emit = defineEmits(["inputClick"]);
+emit("inputClick", categoryValue);
 
 const options = ref([
 	{ id: uuidv4(), value: "Shape", pid: "1" },
