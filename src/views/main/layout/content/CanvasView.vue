@@ -11,14 +11,10 @@ import { throttle } from "lodash-es";
 
 // import { useTerminalStore } from "../../../../store/modules/getTerminal";
 import { useShapeStore } from "../../../../store/modules/shape";
-
 const wrap = ref<HTMLBodyElement>();
-const { getResult, useFillShapeGraphicArr, useContainer } = useShapeStore();
+const { getResult, initContainer, initShapeGraphicArr } = useShapeStore();
 const shapes = getResult();
-const props = defineProps<{
-	val: string | undefined;
-}>();
-console.log(props.val);
+
 const app = new PIXI.Application({
 	background: "#000000",
 	autoDensity: true,
@@ -35,7 +31,7 @@ const throttleResizeRender = throttle(resizeRender, 200);
 window.addEventListener("resize", throttleResizeRender);
 
 const container = new PIXI.Container();
-useContainer(container);
+initContainer(container);
 container.sortableChildren = true;
 const shapeGrahpicArr = shapes.value.map(({ zIndex, position, color, id, category }) => {
 	const graphics = new PIXI.Graphics();
@@ -52,27 +48,8 @@ const shapeGrahpicArr = shapes.value.map(({ zIndex, position, color, id, categor
 	graphics.zIndex = zIndex;
 	return { graphics, id, x, y, width, height, color, zIndex, category };
 });
-let hiddenItems: string[] = [];
-const exposeFliterArr = (value: string) => {
-	console.log("==========");
-	const filterArray = shapeGrahpicArr.filter((item) => item.category.includes(value));
-	if (filterArray) {
-		filterArray.forEach((item) => {
-			const id = item.id;
-			const graphics = item.graphics;
-			if (hiddenItems.includes(id)) {
-				container.addChild(graphics);
-				hiddenItems = hiddenItems.filter((i) => i !== id);
-			} else {
-				container.removeChild(graphics);
-				hiddenItems.push(id);
-			}
-		});
-	}
-};
-defineExpose({ exposeFliterArr });
-useFillShapeGraphicArr(shapeGrahpicArr);
-onMounted(async () => {
+initShapeGraphicArr(shapeGrahpicArr);
+onMounted(() => {
 	const width = wrap.value!.clientWidth;
 	const height = wrap.value!.clientHeight;
 	app.renderer.resize(width, height);

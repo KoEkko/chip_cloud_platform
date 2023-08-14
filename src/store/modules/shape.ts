@@ -50,22 +50,22 @@ export const useShapeStore = defineStore("shapeStore", () => {
 		},
 	]);
 	let shapeGraphicArr: IGraphic[] = [];
-	let container: any;
+	let container: PIXI.Container;
 	const getResult: () => Ref<IShape[]> = () => {
 		return shapes;
 	};
 
-	const useFillShapeGraphicArr = (arr: IGraphic[]) => {
+	const initShapeGraphicArr = (arr: IGraphic[]) => {
 		shapeGraphicArr.push(...arr);
-	};
-	const useContainer = (con: PIXI.Container) => {
-		container = con;
 	};
 	const getShapeGraphicArr = () => {
 		return shapeGraphicArr;
 	};
+	const initContainer = (con: PIXI.Container) => {
+		container = con;
+	};
 	const getContainer = () => {
 		return container;
 	};
-	return { shapes, getResult, useFillShapeGraphicArr, getShapeGraphicArr, useContainer, getContainer };
+	return { shapes, getResult, initShapeGraphicArr, getShapeGraphicArr, initContainer, getContainer };
 });
