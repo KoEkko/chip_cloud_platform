@@ -12,7 +12,7 @@
 					<div class="item">
 						<div class="i1"></div>
 						<div :class="[{ i2: getStyle(child) }, { i22: !getStyle(child) }]">{{ child.value }}</div>
-						<div class="i3"><input type="checkbox" @click="inputClick(child.value)" /></div>
+						<div class="i3"><input type="checkbox" @click="inputClick(child)" /></div>
 					</div>
 				</template>
 			</div>
@@ -24,52 +24,71 @@
 import { ref } from "vue";
 import { v4 as uuidv4 } from "uuid";
 import { useShapeStore } from "../../../../store/modules/shape";
-import * as PIXI from "pixi.js";
+// import { IGraphic } from "../../../../store/modules/shape";
 const { getShapeGraphicArr, getContainer } = useShapeStore();
 const shapeGrahpicArr = getShapeGraphicArr();
+type Toptions = {
+	id: string;
+	value: string;
+	pid?: string;
+	checked: boolean;
+};
+
+const container = getContainer();
 let hiddenItems: string[] = [];
-const container: PIXI.Container = getContainer();
-const categoryValue = ref<string>("");
-const inputClick = (value: string) => {
-	categoryValue.value = value;
-	const filterArray = shapeGrahpicArr.filter((item) => item.category.includes(value));
-	if (filterArray) {
-		filterArray.forEach((item) => {
+const inputClick = (child: Toptions) => {
+	const state = child.checked;
+	const filterArray = shapeGrahpicArr.filter((item) => item.category.includes(child.value));
+	if (!state) {
+		// 未勾选状态
+		// false -> true
+		child.checked = !child.checked;
+		const needHidden = filterArray.filter((item) => !hiddenItems.includes(item.id));
+		needHidden.forEach((item) => {
 			const id = item.id;
 			const graphics = item.graphics;
-			if (hiddenItems.includes(id)) {
+			container.removeChild(graphics);
+			hiddenItems.push(id);
+		});
+	} else {
+		// 勾选状态
+		// true -> false
+		child.checked = !child.checked;
+		const needDisplay = filterArray.filter((item) => hiddenItems.includes(item.id));
+		// 获取所有选择了的复选框
+		const checkdOptions = Array.from(
+			options.value.filter((item) => item.checked === true),
+			(input) => input.value
+		);
+		needDisplay.forEach((item) => {
+			// 只有当这个item不在任何一个被选择的复选框的category中时，才显示它
+			if (!item.category.some((cat) => checkdOptions.includes(cat))) {
+				const id = item.id;
+				const graphics = item.graphics;
 				container.addChild(graphics);
 				hiddenItems = hiddenItems.filter((i) => i !== id);
-			} else {
-				container.removeChild(graphics);
-				hiddenItems.push(id);
 			}
 		});
 	}
 };
 
-const options = ref([
-	{ id: uuidv4(), value: "Shape", pid: "1" },
-	{ id: uuidv4(), value: "Instance Pin" },
-	{ id: uuidv4(), value: "Instance Obs" },
-	{ id: uuidv4(), value: "Instance Pdn" },
-	{ id: uuidv4(), value: "IO Pin" },
-	{ id: uuidv4(), value: "Instance", pid: "2" },
-	{ id: uuidv4(), value: "Standard Cell" },
-	{ id: uuidv4(), value: "IO Cell" },
-	{ id: uuidv4(), value: "Block" },
-	{ id: uuidv4(), value: "Pad" },
-	{ id: uuidv4(), value: "Net", pid: "3" },
-	{ id: uuidv4(), value: "Signal" },
-	{ id: uuidv4(), value: "Clock" },
-	{ id: uuidv4(), value: "Power" },
+const options = ref<Toptions[]>([
+	{ id: uuidv4(), value: "Shape", pid: "1", checked: false },
+	{ id: uuidv4(), value: "Instance Pin", checked: false },
+	{ id: uuidv4(), value: "Instance Obs", checked: false },
+	{ id: uuidv4(), value: "Instance Pdn", checked: false },
+	{ id: uuidv4(), value: "IO Pin", checked: false },
+	{ id: uuidv4(), value: "Instance", pid: "2", checked: false },
+	{ id: uuidv4(), value: "Standard Cell", checked: false },
+	{ id: uuidv4(), value: "IO Cell", checked: false },
+	{ id: uuidv4(), value: "Block", checked: false },
+	{ id: uuidv4(), value: "Pad", checked: false },
+	{ id: uuidv4(), value: "Net", pid: "3", checked: false },
+	{ id: uuidv4(), value: "Signal", checked: false },
+	{ id: uuidv4(), value: "Clock", checked: false },
+	{ id: uuidv4(), value: "Power", checked: false },
 ]);
 
-type Toptions = {
-	id: string;
-	value: string;
-	pid?: string;
-};
 const getStyle = function (value: Toptions) {
 	return !!value.pid;
 };

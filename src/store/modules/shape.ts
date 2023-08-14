@@ -10,7 +10,7 @@ interface IShape {
 	color: number;
 	category: string[];
 }
-interface IGraphic {
+export interface IGraphic {
 	graphics: PIXI.Graphics;
 	id: string;
 	x: number;

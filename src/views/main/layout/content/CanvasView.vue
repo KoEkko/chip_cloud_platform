@@ -12,7 +12,8 @@ import { throttle } from "lodash-es";
 // import { useTerminalStore } from "../../../../store/modules/getTerminal";
 import { useShapeStore } from "../../../../store/modules/shape";
 const wrap = ref<HTMLBodyElement>();
-const { getResult, initContainer, initShapeGraphicArr } = useShapeStore();
+const { getResult, initShapeGraphicArr, initContainer } = useShapeStore();
+
 const shapes = getResult();
 
 const app = new PIXI.Application({
@@ -49,6 +50,7 @@ const shapeGrahpicArr = shapes.value.map(({ zIndex, position, color, id, categor
 	return { graphics, id, x, y, width, height, color, zIndex, category };
 });
 initShapeGraphicArr(shapeGrahpicArr);
+
 onMounted(() => {
 	const width = wrap.value!.clientWidth;
 	const height = wrap.value!.clientHeight;
