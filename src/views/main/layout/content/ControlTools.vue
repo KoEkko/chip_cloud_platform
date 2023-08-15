@@ -27,7 +27,6 @@ type Toptions = {
 	id: string;
 	value: string;
 	pid?: string;
-	checked: boolean;
 };
 
 const emit = defineEmits(["onCheckBoxClick"]);
@@ -44,20 +43,20 @@ const onCheckBoxClick = (child: Toptions) => {
 };
 
 const options = ref<Toptions[]>([
-	{ id: uuidv4(), value: "Shape", pid: "1", checked: false },
-	{ id: uuidv4(), value: "Instance Pin", checked: false },
-	{ id: uuidv4(), value: "Instance Obs", checked: false },
-	{ id: uuidv4(), value: "Instance Pdn", checked: false },
-	{ id: uuidv4(), value: "IO Pin", checked: false },
-	{ id: uuidv4(), value: "Instance", pid: "2", checked: false },
-	{ id: uuidv4(), value: "Standard Cell", checked: false },
-	{ id: uuidv4(), value: "IO Cell", checked: false },
-	{ id: uuidv4(), value: "Block", checked: false },
-	{ id: uuidv4(), value: "Pad", checked: false },
-	{ id: uuidv4(), value: "Net", pid: "3", checked: false },
-	{ id: uuidv4(), value: "Signal", checked: false },
-	{ id: uuidv4(), value: "Clock", checked: false },
-	{ id: uuidv4(), value: "Power", checked: false },
+	{ id: uuidv4(), value: "Shape", pid: "1" },
+	{ id: uuidv4(), value: "Instance Pin" },
+	{ id: uuidv4(), value: "Instance Obs" },
+	{ id: uuidv4(), value: "Instance Pdn" },
+	{ id: uuidv4(), value: "IO Pin" },
+	{ id: uuidv4(), value: "Instance", pid: "2" },
+	{ id: uuidv4(), value: "Standard Cell" },
+	{ id: uuidv4(), value: "IO Cell" },
+	{ id: uuidv4(), value: "Block" },
+	{ id: uuidv4(), value: "Pad" },
+	{ id: uuidv4(), value: "Net", pid: "3" },
+	{ id: uuidv4(), value: "Signal" },
+	{ id: uuidv4(), value: "Clock" },
+	{ id: uuidv4(), value: "Power" },
 ]);
 
 const getStyle = function (value: Toptions) {
