@@ -49,23 +49,10 @@ export const useShapeStore = defineStore("shapeStore", () => {
 			category: ["Clock", "IO Cell", "Block"],
 		},
 	]);
-	let shapeGraphicArr: IGraphic[] = [];
-	let container: PIXI.Container;
+
 	const getResult: () => Ref<IShape[]> = () => {
 		return shapes;
 	};
 
-	const initShapeGraphicArr = (arr: IGraphic[]) => {
-		shapeGraphicArr.push(...arr);
-	};
-	const getShapeGraphicArr = () => {
-		return shapeGraphicArr;
-	};
-	const initContainer = (con: PIXI.Container) => {
-		container = con;
-	};
-	const getContainer = () => {
-		return container;
-	};
-	return { shapes, getResult, initShapeGraphicArr, getShapeGraphicArr, initContainer, getContainer };
+	return { shapes, getResult };
 });

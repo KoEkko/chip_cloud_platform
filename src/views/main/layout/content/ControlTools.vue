@@ -12,7 +12,7 @@
 					<div class="item">
 						<div class="i1"></div>
 						<div :class="[{ i2: getStyle(child) }, { i22: !getStyle(child) }]">{{ child.value }}</div>
-						<div class="i3"><input type="checkbox" @click="inputClick(child)" /></div>
+						<div class="i3"><input type="checkbox" @click="onCheckBoxClick(child)" /></div>
 					</div>
 				</template>
 			</div>
@@ -23,10 +23,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { v4 as uuidv4 } from "uuid";
-import { useShapeStore } from "../../../../store/modules/shape";
-// import { IGraphic } from "../../../../store/modules/shape";
-const { getShapeGraphicArr, getContainer } = useShapeStore();
-const shapeGrahpicArr = getShapeGraphicArr();
 type Toptions = {
 	id: string;
 	value: string;
@@ -34,42 +30,17 @@ type Toptions = {
 	checked: boolean;
 };
 
-const container = getContainer();
-let hiddenItems: string[] = [];
-const inputClick = (child: Toptions) => {
-	const state = child.checked;
-	const filterArray = shapeGrahpicArr.filter((item) => item.category.includes(child.value));
-	if (!state) {
-		// 未勾选状态
-		// false -> true
-		child.checked = !child.checked;
-		const needHidden = filterArray.filter((item) => !hiddenItems.includes(item.id));
-		needHidden.forEach((item) => {
-			const id = item.id;
-			const graphics = item.graphics;
-			container.removeChild(graphics);
-			hiddenItems.push(id);
-		});
+const emit = defineEmits(["onCheckBoxClick"]);
+
+let checkedOptions: string[] = [];
+const onCheckBoxClick = (child: Toptions) => {
+	const option = child.value;
+	if (checkedOptions.includes(option)) {
+		checkedOptions = checkedOptions.filter((o) => o !== option);
 	} else {
-		// 勾选状态
-		// true -> false
-		child.checked = !child.checked;
-		const needDisplay = filterArray.filter((item) => hiddenItems.includes(item.id));
-		// 获取所有选择了的复选框
-		const checkdOptions = Array.from(
-			options.value.filter((item) => item.checked === true),
-			(input) => input.value
-		);
-		needDisplay.forEach((item) => {
-			// 只有当这个item不在任何一个被选择的复选框的category中时，才显示它
-			if (!item.category.some((cat) => checkdOptions.includes(cat))) {
-				const id = item.id;
-				const graphics = item.graphics;
-				container.addChild(graphics);
-				hiddenItems = hiddenItems.filter((i) => i !== id);
-			}
-		});
+		checkedOptions.push(option);
 	}
+	emit("onCheckBoxClick", checkedOptions);
 };
 
 const options = ref<Toptions[]>([

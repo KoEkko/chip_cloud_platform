@@ -5,16 +5,23 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, toRefs, watch } from "vue";
 import * as PIXI from "pixi.js";
 import { throttle } from "lodash-es";
 
 // import { useTerminalStore } from "../../../../store/modules/getTerminal";
-import { useShapeStore } from "../../../../store/modules/shape";
+import { IGraphic } from "../../../../store/modules/shape";
 const wrap = ref<HTMLBodyElement>();
-const { getResult, initShapeGraphicArr, initContainer } = useShapeStore();
 
-const shapes = getResult();
+// props
+const props = defineProps<{
+	shapes: IGraphic[];
+	hiddenItems: string[];
+}>();
+const { hiddenItems, shapes } = toRefs(props);
+watch(hiddenItems, () => {
+	renderShapes();
+});
 
 const app = new PIXI.Application({
 	background: "#000000",
@@ -22,6 +29,27 @@ const app = new PIXI.Application({
 	resolution: window.devicePixelRatio,
 	antialias: true,
 });
+const container = new PIXI.Container();
+container.sortableChildren = true;
+
+const setupPixi = () => {
+	const width = wrap.value!.clientWidth;
+	const height = wrap.value!.clientHeight;
+	app.renderer.resize(width, height);
+	renderShapes();
+	app.stage.addChild(container);
+};
+
+const renderShapes = () => {
+	container.removeChildren();
+	const visibleShapes = shapes.value.filter((shape) => !hiddenItems.value.includes(shape.id));
+	visibleShapes.forEach((shape) => {
+		const graphics = shape.graphics;
+		container.addChild(graphics);
+	});
+	app.renderer.render(container);
+};
+
 // 自适应
 function resizeRender() {
 	const width = wrap.value!.clientWidth;
@@ -31,36 +59,9 @@ function resizeRender() {
 const throttleResizeRender = throttle(resizeRender, 200);
 window.addEventListener("resize", throttleResizeRender);
 
-const container = new PIXI.Container();
-initContainer(container);
-container.sortableChildren = true;
-const shapeGrahpicArr = shapes.value.map(({ zIndex, position, color, id, category }) => {
-	const graphics = new PIXI.Graphics();
-	Object.defineProperty(graphics, "id", {
-		value: id,
-		writable: true,
-		enumerable: true,
-		configurable: true,
-	});
-	const [x, y, width, height] = position;
-	const rect = new PIXI.Rectangle(x, y, width, height);
-	graphics.beginFill(color);
-	graphics.drawRect(rect.x, rect.y, width, height);
-	graphics.zIndex = zIndex;
-	return { graphics, id, x, y, width, height, color, zIndex, category };
-});
-initShapeGraphicArr(shapeGrahpicArr);
-
 onMounted(() => {
-	const width = wrap.value!.clientWidth;
-	const height = wrap.value!.clientHeight;
-	app.renderer.resize(width, height);
+	setupPixi();
 	wrap.value?.appendChild(app.view as any);
-	const shapes = shapeGrahpicArr.map((item) => {
-		return item.graphics;
-	});
-	container.addChild(...shapes);
-	app.stage.addChild(container);
 });
 </script>
 
