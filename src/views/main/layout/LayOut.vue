@@ -6,12 +6,6 @@
 				<DropDown />
 			</div>
 			<a-layout-content>
-				<div class="title">Layout</div>
-				<div class="bar">
-					<div class="color">
-						<a-input class="input"></a-input>
-					</div>
-				</div>
 				<ContentView />
 			</a-layout-content>
 			<a-layout-footer>
@@ -34,35 +28,7 @@ import ContentView from "./content/ContentView.vue";
 	align-items: center;
 	gap: 20px;
 }
-.title {
-	display: inline-block;
-	border: 1px solid gray;
-	background-color: #fff;
-	font-size: 16px;
-	font-weight: 800;
-	padding: 4px;
-}
-.bar {
-	display: flex;
-	align-items: center;
-	justify-content: end;
-	border-top: none;
-	border: 1px solid gray;
-	background: #fff;
-	height: 40px;
-	.color {
-		position: relative;
-		.input {
-			width: 180px;
-			height: 25px;
-			margin-right: 10px;
-		}
-	}
-}
 
-.ant-layout-content {
-	min-height: fit-content;
-}
 .ant-layout-footer {
 	margin-top: 10px;
 	height: 25vh;

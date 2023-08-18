@@ -1,24 +1,12 @@
 import { Ref, ref } from "vue";
 import { defineStore } from "pinia";
 import { v4 as uuidv4 } from "uuid";
-import * as PIXI from "pixi.js";
 interface IShape {
 	id: string;
 	value: string;
 	zIndex: number;
 	position: number[];
 	color: number;
-	category: string[];
-}
-export interface IGraphic {
-	graphics: PIXI.Graphics;
-	id: string;
-	x: number;
-	y: number;
-	width: number;
-	height: number;
-	color: number;
-	zIndex: number;
 	category: string[];
 }
 
