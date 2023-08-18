@@ -7,7 +7,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, toRefs, watch, type Ref } from "vue";
+import { onMounted, ref, toRefs, watch, type Ref, reactive } from "vue";
 import * as PIXI from "pixi.js";
 import { throttle } from "lodash-es";
 import { IGraphic } from "../../../../types";
@@ -50,29 +50,40 @@ const setupMainApp = () => {
 	mainApp.stage.addChild(container);
 	main.value?.appendChild(mainApp.view as any);
 };
+
+const rulerContainerX = new PIXI.Container();
+const rulerGraphicsX = new PIXI.Graphics();
+const rulerContainerY = new PIXI.Container();
+const rulerGraphicsY = new PIXI.Graphics();
 const topApp = new PIXI.Application({
-	background: "#fff000",
+	background: "#f5f5f5",
 	autoDensity: true,
 	resolution: window.devicePixelRatio,
 	antialias: true,
 });
-const rulerContainer = new PIXI.Container();
-const rulerGraphics = new PIXI.Graphics();
-
 const setupTopApp = () => {
 	const width = top.value!.clientWidth;
 	const height = top.value!.clientHeight;
 	topApp.renderer.resize(width, height);
-	rulerContainer.addChild(rulerGraphics);
-	topApp.stage.addChild(rulerContainer);
+	rulerContainerX.addChild(rulerGraphicsX);
+	topApp.stage.addChild(rulerContainerX);
 	top.value?.appendChild(topApp.view as any);
 };
-
-const viewport = {
-	x: 22,
-	y: 119,
-	width: 844,
+const leftApp = new PIXI.Application({
+	background: "#f5f5f5",
+	autoDensity: true,
+	resolution: window.devicePixelRatio,
+	antialias: true,
+});
+const setupLeftApp = () => {
+	const width = left.value!.clientWidth;
+	const height = left.value!.clientHeight;
+	leftApp.renderer.resize(width, height);
+	rulerContainerY.addChild(rulerGraphicsY);
+	leftApp.stage.addChild(rulerContainerY);
+	left.value?.appendChild(leftApp.view as any);
 };
+
 const setting = {
 	rulerMarkSize: 10,
 	rulerMarkStroke: 0x000000,
@@ -93,43 +104,55 @@ const getClosestVal = (value: number, segment: number) => {
 	return value - left <= right - value ? left : right;
 };
 
+const rulerX = 20;
 const rulerY = 20;
 const updateRuler = (zoom: number) => {
-	rulerContainer.removeChildren(); // 清空之前的文本元素
-	rulerGraphics.clear();
+	const viewport = reactive({
+		x: 22,
+		y: 119,
+		width: main.value!.clientWidth,
+		height: main.value!.clientHeight,
+	});
+
+	// X 坐标的标尺
+	rulerContainerX.removeChildren(); // 清空之前的文本元素
+	rulerGraphicsX.clear();
+
 	const newStep = getStepByZoom(zoom);
 	const startMarkX = getClosestVal(viewport.x, newStep);
 	const endMarkX = getClosestVal(Math.ceil((viewport.x + viewport.width) * zoom), newStep);
 	for (let x = startMarkX; x <= endMarkX; x += newStep) {
 		const posX = (x - viewport.x) * zoom;
-		rulerGraphics.lineStyle(1, setting.rulerMarkStroke);
-		rulerGraphics.moveTo(posX, rulerY);
-		rulerGraphics.lineTo(posX, rulerY + setting.rulerMarkSize);
-
+		rulerGraphicsX.lineStyle(1, setting.rulerMarkStroke);
+		rulerGraphicsX.moveTo(posX, rulerY);
+		rulerGraphicsX.lineTo(posX, rulerY + setting.rulerMarkSize);
 		const text = new PIXI.Text(String(x), { fontSize: 12, fill: setting.rulerMarkStroke });
 		text.x = posX;
 		text.y = rulerY - 20;
 		text.anchor.set(0.5, 0);
-		rulerContainer.addChild(text);
+		rulerContainerX.addChild(text);
 	}
-	rulerGraphics.lineStyle(1, setting.rulerMarkStroke);
+	// Y 坐标的标尺
+	rulerContainerY.removeChildren(); // 清空之前的文本元素
+	rulerGraphicsY.clear();
+	const startMarkY = getClosestVal(viewport.y, newStep);
+	const endMarkY = getClosestVal(Math.ceil((viewport.y + viewport.height) * zoom), newStep);
+	console.log(startMarkY, endMarkY);
+	for (let y = startMarkY; y <= endMarkY; y += newStep) {
+		const posY = (y - viewport.y) * zoom;
+		console.log(posY);
+		rulerGraphicsY.lineStyle(1, setting.rulerMarkStroke);
+		rulerGraphicsY.moveTo(rulerX, posY);
+		rulerGraphicsY.lineTo(rulerX + setting.rulerMarkSize, posY);
+		const text = new PIXI.Text(String(y), { fontSize: 12, fill: setting.rulerMarkStroke });
+		text.x = rulerX - 20;
+		text.y = posY;
+		text.rotation = -(Math.PI / 2);
+		rulerContainerY.addChild(text);
+	}
 	container.scale.set(zoom);
 };
 
-updateRuler(zoom.value);
-// ==================================================================================
-const leftApp = new PIXI.Application({
-	background: "#000fff",
-	autoDensity: true,
-	resolution: window.devicePixelRatio,
-	antialias: true,
-});
-const setupLeftApp = () => {
-	const width = left.value!.clientWidth;
-	const height = left.value!.clientHeight;
-	leftApp.renderer.resize(width, height);
-	left.value?.appendChild(leftApp.view as any);
-};
 // 获取数据
 const { getResult } = useShapeStore();
 const shapes = getResult();
@@ -171,6 +194,8 @@ function resizeRender() {
 	const width = main.value!.clientWidth;
 	const height = main.value!.clientHeight;
 	mainApp.renderer.resize(width, height);
+	topApp.renderer.resize(width, 22);
+	leftApp.renderer.resize(22, height);
 }
 const throttleResizeRender = throttle(resizeRender, 200);
 window.addEventListener("resize", throttleResizeRender);
@@ -179,6 +204,7 @@ onMounted(() => {
 	setupTopApp();
 	setupMainApp();
 	setupLeftApp();
+	updateRuler(zoom.value);
 });
 </script>
 
