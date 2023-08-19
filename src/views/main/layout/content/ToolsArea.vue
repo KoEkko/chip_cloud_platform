@@ -21,9 +21,11 @@ let zoomValue = 1; // 缩放
 const emits = defineEmits(["scaleControl"]);
 const scaleControl = (flag: boolean) => {
 	if (flag) {
-		zoomValue += 1;
+		if (zoomValue === 2.5) return;
+		zoomValue = Number((zoomValue + 0.1).toFixed(1));
 	} else {
-		zoomValue -= 1;
+		if (zoomValue === 0.1) return;
+		zoomValue = Number((zoomValue - 0.1).toFixed(1));
 	}
 	emits("scaleControl", zoomValue);
 };

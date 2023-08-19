@@ -32,7 +32,7 @@ watch(zoom, (newZoom) => {
 	updateRuler(newZoom);
 });
 
-// 初始化pixi
+// 初始化main、left、top & App
 const mainApp = new PIXI.Application({
 	background: "#000000",
 	autoDensity: true,
@@ -43,7 +43,6 @@ const container = new PIXI.Container();
 const setupMainApp = () => {
 	const width = main.value!.clientWidth;
 	const height = main.value!.clientHeight;
-	container.pivot.set(0.5);
 	container.sortableChildren = true;
 	mainApp.renderer.resize(width, height);
 	renderShapes();
@@ -65,7 +64,6 @@ const setupTopApp = () => {
 	const width = top.value!.clientWidth;
 	const height = top.value!.clientHeight;
 	topApp.renderer.resize(width, height);
-	rulerContainerX.addChild(rulerGraphicsX);
 	topApp.stage.addChild(rulerContainerX);
 	top.value?.appendChild(topApp.view as any);
 };
@@ -79,17 +77,16 @@ const setupLeftApp = () => {
 	const width = left.value!.clientWidth;
 	const height = left.value!.clientHeight;
 	leftApp.renderer.resize(width, height);
-	rulerContainerY.addChild(rulerGraphicsY);
 	leftApp.stage.addChild(rulerContainerY);
 	left.value?.appendChild(leftApp.view as any);
 };
 
-const setting = {
-	rulerMarkSize: 10,
-	rulerMarkStroke: 0x000000,
-};
+/**
+ * 根据放缩比计算出刻度间隔
+ * @param zoom 放缩比
+ * @returns step 刻度间隔
+ */
 const getStepByZoom = (zoom: number) => {
-	console.log(zoom);
 	const steps = [1, 2, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000];
 	const step = 50 / zoom;
 	for (let i = 0, len = steps.length; i < len; i++) {
@@ -97,15 +94,27 @@ const getStepByZoom = (zoom: number) => {
 	}
 	return steps[0];
 };
+/**
+ *  计算出当前值最接近的值，是整数
+ * @param value 刻度值
+ * @param segment 当前zoom下的刻度间隔
+ */
 const getClosestVal = (value: number, segment: number) => {
 	const n = Math.floor(value / segment);
 	const left = segment * n;
 	const right = segment * (n + 1);
 	return value - left <= right - value ? left : right;
 };
-
+// 定义标尺的样式
+const setting = {
+	rulerMarkSize: 10,
+	rulerMarkStroke: 0x000000,
+};
+// 刻度绘制的位置
 const rulerX = 20;
 const rulerY = 20;
+
+// 更新标尺
 const updateRuler = (zoom: number) => {
 	const viewport = reactive({
 		x: 22,
@@ -120,36 +129,44 @@ const updateRuler = (zoom: number) => {
 
 	const newStep = getStepByZoom(zoom);
 	const startMarkX = getClosestVal(viewport.x, newStep);
-	const endMarkX = getClosestVal(Math.ceil((viewport.x + viewport.width) * zoom), newStep);
+	const endMarkX = getClosestVal(Math.ceil((viewport.x + viewport.width) / zoom), newStep);
+	rulerGraphicsX.lineStyle(1, setting.rulerMarkStroke);
 	for (let x = startMarkX; x <= endMarkX; x += newStep) {
+		// 刻度线
 		const posX = (x - viewport.x) * zoom;
-		rulerGraphicsX.lineStyle(1, setting.rulerMarkStroke);
-		rulerGraphicsX.moveTo(posX, rulerY);
-		rulerGraphicsX.lineTo(posX, rulerY + setting.rulerMarkSize);
+		rulerGraphicsX.moveTo(posX, rulerY + setting.rulerMarkSize);
+		rulerGraphicsX.lineTo(posX, rulerY);
+		rulerGraphicsX.endFill();
+		// 刻度值
 		const text = new PIXI.Text(String(x), { fontSize: 12, fill: setting.rulerMarkStroke });
 		text.x = posX;
-		text.y = rulerY - 20;
+		text.y = 0;
 		text.anchor.set(0.5, 0);
 		rulerContainerX.addChild(text);
 	}
+	rulerContainerX.addChild(rulerGraphicsX);
+
 	// Y 坐标的标尺
 	rulerContainerY.removeChildren(); // 清空之前的文本元素
 	rulerGraphicsY.clear();
 	const startMarkY = getClosestVal(viewport.y, newStep);
-	const endMarkY = getClosestVal(Math.ceil((viewport.y + viewport.height) * zoom), newStep);
-	console.log(startMarkY, endMarkY);
+	const endMarkY = getClosestVal(Math.ceil((viewport.y + viewport.height) / zoom), newStep);
+	rulerGraphicsY.lineStyle(1, setting.rulerMarkStroke);
 	for (let y = startMarkY; y <= endMarkY; y += newStep) {
 		const posY = (y - viewport.y) * zoom;
-		console.log(posY);
-		rulerGraphicsY.lineStyle(1, setting.rulerMarkStroke);
 		rulerGraphicsY.moveTo(rulerX, posY);
 		rulerGraphicsY.lineTo(rulerX + setting.rulerMarkSize, posY);
+		rulerGraphicsY.endFill();
 		const text = new PIXI.Text(String(y), { fontSize: 12, fill: setting.rulerMarkStroke });
 		text.x = rulerX - 20;
 		text.y = posY;
+		text.anchor.set(0.5, 0);
 		text.rotation = -(Math.PI / 2);
 		rulerContainerY.addChild(text);
 	}
+	rulerContainerY.addChild(rulerGraphicsY);
+	// 缩放画布
+	container.pivot.set(0.5);
 	container.scale.set(zoom);
 };
 
