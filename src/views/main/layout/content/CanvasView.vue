@@ -7,7 +7,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, toRefs, watch, type Ref, reactive } from "vue";
+import { onMounted, ref, toRefs, watch, type Ref, computed } from "vue";
 import * as PIXI from "pixi.js";
 import { throttle } from "lodash-es";
 import { IGraphic } from "../../../../types";
@@ -29,7 +29,7 @@ watch(checkedOptions, () => {
 	renderShapes();
 });
 watch(zoom, (newZoom) => {
-	updateRuler(newZoom);
+	updateRuler(newZoom, totalOffset);
 });
 
 // 初始化main、left、top & App
@@ -40,14 +40,57 @@ const mainApp = new PIXI.Application({
 	antialias: true,
 });
 const container = new PIXI.Container();
+const background = new PIXI.Graphics();
+background.beginFill(0xffffff); // 设置背景颜色
+background.drawRect(0, 0, 800, 600); // 根据舞台尺寸设置矩形大小
+background.endFill();
+// 将背景色矩形添加到容器中
+container.addChild(background);
 const setupMainApp = () => {
 	const width = main.value!.clientWidth;
 	const height = main.value!.clientHeight;
 	container.sortableChildren = true;
+	// 设置舞台能够交互
+	mainApp.stage.eventMode = "dynamic";
+	// 确保舞台覆盖整个场景
+	mainApp.stage.hitArea = mainApp.screen;
+	mainApp.stage.on("pointerdown", onDragStart);
+	mainApp.stage.on("pointermove", throttleOnDrag);
+	mainApp.stage.on("pointerup", onDragEnd);
+	mainApp.stage.on("pointerupoutside", onDragEnd);
 	mainApp.renderer.resize(width, height);
 	renderShapes();
 	mainApp.stage.addChild(container);
 	main.value?.appendChild(mainApp.view as any);
+};
+
+let isDragging = false;
+let lastPosition = new PIXI.Point();
+let totalOffset = { x: 0, y: 0 };
+const onDragStart = (e: PIXI.FederatedPointerEvent) => {
+	e.preventDefault();
+	isDragging = true;
+	// 设置起初坐标
+	const { x, y } = e.global;
+	lastPosition.set(x, y);
+};
+const onDrag = (e: PIXI.FederatedPointerEvent) => {
+	if (isDragging) {
+		const { x: globalX, y: globalY } = e.global;
+		const dx = globalX - lastPosition.x;
+		const dy = globalY - lastPosition.y;
+		totalOffset.x += dx;
+		totalOffset.y += dy;
+		container.position.x += dx;
+		container.position.y += dy;
+		updateRuler(zoom.value, totalOffset);
+		lastPosition.set(globalX, globalY);
+	}
+};
+const throttleOnDrag = throttle(onDrag, 50);
+
+const onDragEnd = () => {
+	isDragging = false;
 };
 
 const rulerContainerX = new PIXI.Container();
@@ -114,22 +157,34 @@ const setting = {
 const rulerX = 20;
 const rulerY = 20;
 
+type Positon = {
+	x: number;
+	y: number;
+};
+// 减少频繁计算 main 的client
+const getMainRectBound = computed(() => {
+	return {
+		width: main.value?.clientWidth,
+		height: main.value?.clientHeight,
+	};
+});
 // 更新标尺
-const updateRuler = (zoom: number) => {
-	const viewport = reactive({
-		x: 22,
-		y: 119,
-		width: main.value!.clientWidth,
-		height: main.value!.clientHeight,
-	});
-
+const updateRuler = (zoom: number, position: Positon = { x: 0, y: 0 }) => {
+	const RectBound = getMainRectBound;
+	const { width, height } = RectBound.value;
+	const viewport = {
+		x: position.x,
+		y: position.y,
+		width,
+		height,
+	};
 	// X 坐标的标尺
 	rulerContainerX.removeChildren(); // 清空之前的文本元素
 	rulerGraphicsX.clear();
 
 	const newStep = getStepByZoom(zoom);
 	const startMarkX = getClosestVal(viewport.x, newStep);
-	const endMarkX = getClosestVal(Math.ceil((viewport.x + viewport.width) / zoom), newStep);
+	const endMarkX = getClosestVal(Math.ceil((viewport.x + viewport.width!) / zoom), newStep);
 	rulerGraphicsX.lineStyle(1, setting.rulerMarkStroke);
 	for (let x = startMarkX; x <= endMarkX; x += newStep) {
 		// 刻度线
@@ -150,7 +205,7 @@ const updateRuler = (zoom: number) => {
 	rulerContainerY.removeChildren(); // 清空之前的文本元素
 	rulerGraphicsY.clear();
 	const startMarkY = getClosestVal(viewport.y, newStep);
-	const endMarkY = getClosestVal(Math.ceil((viewport.y + viewport.height) / zoom), newStep);
+	const endMarkY = getClosestVal(Math.ceil((viewport.y + viewport.height!) / zoom), newStep);
 	rulerGraphicsY.lineStyle(1, setting.rulerMarkStroke);
 	for (let y = startMarkY; y <= endMarkY; y += newStep) {
 		const posY = (y - viewport.y) * zoom;
