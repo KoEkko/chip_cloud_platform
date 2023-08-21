@@ -27,6 +27,7 @@ watch(checkedOptions, () => {
 	renderShapes();
 });
 watch(zoom, (newZoom) => {
+	scalePoint(newZoom);
 	updateRuler(newZoom, totalOffset);
 });
 
@@ -69,8 +70,8 @@ const onDragStart = (e: PIXI.FederatedPointerEvent) => {
 const onDrag = (e: PIXI.FederatedPointerEvent) => {
 	if (isDragging) {
 		const { x: globalX, y: globalY } = e.global;
-		const dx = globalX - lastPosition.x;
-		const dy = globalY - lastPosition.y;
+		const dx = (globalX - lastPosition.x) / zoom.value;
+		const dy = (globalY - lastPosition.y) / zoom.value;
 		totalOffset.x += dx;
 		totalOffset.y += dy;
 		container.position.x -= dx;
@@ -153,6 +154,12 @@ type Positon = {
 	x: number;
 	y: number;
 };
+
+// 缩放中心点
+const scalePoint = (newZoom: number) => {
+	container.pivot.set(0.5);
+	container.scale.set(newZoom);
+};
 // 减少频繁计算 main 的client
 const getMainRectBound = computed(() => {
 	return {
@@ -160,7 +167,7 @@ const getMainRectBound = computed(() => {
 		height: main.value?.clientHeight,
 	};
 });
-// 更新标尺
+// 标尺更新
 const updateRuler = (zoom: number, position: Positon = { x: 0, y: 0 }) => {
 	const RectBound = getMainRectBound;
 	const { width, height } = RectBound.value;
@@ -175,7 +182,6 @@ const updateRuler = (zoom: number, position: Positon = { x: 0, y: 0 }) => {
 	rulerGraphicsX.clear();
 
 	const newStep = getStepByZoom(zoom);
-	console.log(newStep, zoom);
 	const startMarkX = getClosestVal(viewport.x, newStep);
 	const endMarkX = getClosestVal(Math.ceil(viewport.x + viewport.width! / zoom), newStep);
 	rulerGraphicsX.lineStyle(1, setting.rulerMarkStroke);
@@ -213,9 +219,6 @@ const updateRuler = (zoom: number, position: Positon = { x: 0, y: 0 }) => {
 		rulerContainerY.addChild(text);
 	}
 	rulerContainerY.addChild(rulerGraphicsY);
-	// 缩放画布
-	container.pivot.set(0.5);
-	container.scale.set(zoom);
 };
 
 // 获取数据
@@ -249,6 +252,7 @@ const renderShapes = () => {
 	const visibleShapes = shapeGrahpicArr.filter((shape) => !hiddenItems.value.includes(shape.id));
 	visibleShapes.forEach((shape) => {
 		const graphics = shape.graphics;
+		graphics.pivot.set(0.5);
 		container.addChild(graphics);
 	});
 	mainApp.renderer.render(container);

@@ -22,10 +22,10 @@ const emits = defineEmits(["scaleControl"]);
 const scaleControl = (flag: boolean) => {
 	if (flag) {
 		if (zoomValue === 2.5) return;
-		zoomValue = Number((zoomValue + 0.05).toFixed(2));
+		zoomValue = Number((zoomValue + 0.1).toFixed(2));
 	} else {
 		if (zoomValue === 0.6) return;
-		zoomValue = Number((zoomValue - 0.05).toFixed(2));
+		zoomValue = Number((zoomValue - 0.1).toFixed(2));
 	}
 	emits("scaleControl", zoomValue);
 };
