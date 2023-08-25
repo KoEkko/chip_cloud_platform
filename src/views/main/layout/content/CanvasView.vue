@@ -10,8 +10,12 @@
 import { onMounted, ref, toRefs, watch, type Ref, computed } from "vue";
 import * as PIXI from "pixi.js";
 import { throttle } from "lodash-es";
-import { IGraphic } from "../../../../types";
 import { useShapeStore } from "../../../../store/modules/shape";
+import useCanvasView from "../../../../hooks/CanvasView";
+import { getClosestVal, getStepByZoom } from "../../../../utils/CalculateRuler";
+import { Positon } from "../../../../types";
+
+const { getShapeGraphicsArr } = useCanvasView();
 const top = ref<HTMLElement>();
 const main = ref<HTMLElement>();
 const left = ref<HTMLElement>();
@@ -42,21 +46,37 @@ const mainApp = new PIXI.Application({
 const container = new PIXI.Container();
 const zoomRef = ref(zoom.value);
 const emits = defineEmits(["onMouseWheel"]);
-// 按照中心点来缩放
-const scaleCenter = () => {
-	const { width, height } = mainApp.screen;
-	const { x, y } = container;
-	const prevScale = zoomRef.value;
-	zoomRef.value = zoom.value;
-	const dx = (width - x) * (1 - zoom.value / prevScale);
-	const dy = (height - y) * (1 - zoom.value / prevScale);
-	container.scale.set(zoom.value);
+type offset = {
+	gx: number;
+	gy: number;
+	cx: number;
+	cy: number;
+};
+const calculateOffset = (offset: offset, currScale: number, prevScale: number) => {
+	// 获取鼠标、画布中心的位置
+	const { gx, gy, cx, cy } = offset;
+	// 计算缩放比例
+	const scaleDiff = currScale / prevScale;
+	// 计算偏移值，根据变换矩阵来计算
+	const dx = (gx - cx) * (1 - scaleDiff);
+	const dy = (gy - cy) * (1 - scaleDiff);
+	// container做相对应的移动、缩放
+	container.scale.set(currScale);
 	container.x += dx;
 	container.y += dy;
 	totalOffset.x -= dx;
 	totalOffset.y -= dy;
 };
+// 按照中心点来缩放
+const scaleCenter = (newZoom: number) => {
+	const { width: gx, height: gy } = mainApp.screen;
+	const { x: cx, y: cy } = container;
+	const prevScale = zoomRef.value;
+	console.log(zoom.value, prevScale);
+	calculateOffset({ gx, gy, cx, cy }, newZoom, prevScale);
+};
 defineExpose({ scaleCenter });
+
 // 按照鼠标位置滚轮缩放
 const onMouseWheel = (e: PIXI.FederatedWheelEvent) => {
 	// 获取鼠标的位置
@@ -67,37 +87,33 @@ const onMouseWheel = (e: PIXI.FederatedWheelEvent) => {
 	const prevScale = zoom.value;
 	// 鼠标滚轮的方向
 	const deltaY = e.deltaY;
-	zoomRef.value += deltaY > 0 ? 0.1 : -0.1;
+	// ↑为缩小， ↓为放大
+	zoomRef.value += deltaY < 0 ? 0.1 : -0.1;
 	// 最小的zoom值
 	if (zoomRef.value < 0.2) {
 		zoomRef.value = 0.2;
 	}
 	// 更新zoom的值
 	emits("onMouseWheel", zoomRef.value);
-	// 计算偏移值，根据变换矩阵来计算
-	const dx = (gx - cx) * (1 - zoomRef.value / prevScale);
-	const dy = (gy - cy) * (1 - zoomRef.value / prevScale);
-	container.scale.set(zoomRef.value);
-	// container做相对应的移动
-	container.x += dx;
-	container.y += dy;
-	totalOffset.x -= dx;
-	totalOffset.y -= dy;
+	calculateOffset({ gx, gy, cx, cy }, zoomRef.value, prevScale);
 };
 const setupMainApp = () => {
 	const width = main.value!.clientWidth;
 	const height = main.value!.clientHeight;
+
 	container.sortableChildren = true;
 	// 设置舞台能够交互
 	mainApp.stage.eventMode = "dynamic";
 	// 确保舞台覆盖整个场景
 	mainApp.stage.hitArea = mainApp.screen;
+	// 各种监听
 	mainApp.stage.on("wheel", onMouseWheel);
 	mainApp.stage.on("pointerdown", onDragStart);
 	mainApp.stage.on("pointermove", throttleOnDrag);
 	mainApp.stage.on("pointerup", onDragEnd);
 	mainApp.stage.on("pointerupoutside", onDragEnd);
 	mainApp.renderer.resize(width, height);
+	// 初次渲染所有的图形
 	renderShapes();
 	mainApp.stage.addChild(container);
 	main.value?.appendChild(mainApp.view as any);
@@ -133,9 +149,7 @@ const onDragEnd = () => {
 };
 
 const rulerContainerX = new PIXI.Container();
-const rulerGraphicsX = new PIXI.Graphics();
 const rulerContainerY = new PIXI.Container();
-const rulerGraphicsY = new PIXI.Graphics();
 const topApp = new PIXI.Application({
 	background: "#f5f5f5",
 	autoDensity: true,
@@ -163,30 +177,6 @@ const setupLeftApp = () => {
 	left.value?.appendChild(leftApp.view as any);
 };
 
-/**
- * 根据放缩比计算出刻度间隔
- * @param zoom 放缩比
- * @returns step 刻度间隔
- */
-const getStepByZoom = (zoom: number) => {
-	const steps = [1, 2, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000];
-	const step = 50 / zoom;
-	for (let i = 0, len = steps.length; i < len; i++) {
-		if (steps[i] >= step) return steps[i];
-	}
-	return steps[0];
-};
-/**
- *  计算出当前值最接近的值，是整数
- * @param value 刻度值
- * @param segment 当前zoom下的刻度间隔
- */
-const getClosestVal = (value: number, segment: number) => {
-	const n = Math.floor(value / segment);
-	const left = segment * n;
-	const right = segment * (n + 1);
-	return value - left <= right - value ? left : right;
-};
 // 定义标尺的样式
 const setting = {
 	rulerMarkSize: 10,
@@ -195,11 +185,6 @@ const setting = {
 // 刻度绘制的位置
 const rulerX = 20;
 const rulerY = 20;
-
-type Positon = {
-	x: number;
-	y: number;
-};
 
 // 减少频繁计算 main 的client
 const getMainRectBound = computed(() => {
@@ -229,68 +214,61 @@ const getSceneCoords = (position: Positon = { x: 0, y: 0 }) => {
  */
 const updateRuler = (zoom: number, position: Positon = { x: 0, y: 0 }) => {
 	getSceneCoords(position);
+	const tempContainerX = new PIXI.Container();
+	const tempGraphicsX = new PIXI.Graphics();
 	// X 坐标的标尺
-	rulerContainerX.removeChildren(); // 清空之前的文本元素
-	rulerGraphicsX.clear();
-
+	// 清空之前的文本元素
 	const newStep = getStepByZoom(zoom);
 	const startMarkX = getClosestVal(viewport.x, newStep);
-	const endMarkX = getClosestVal(viewport.x + viewport.width / zoom, newStep);
-	rulerGraphicsX.lineStyle(1, setting.rulerMarkStroke);
+	const endMarkX = getClosestVal(Math.ceil(viewport.x + viewport.width / zoom), newStep);
+
+	tempGraphicsX.lineStyle(1, setting.rulerMarkStroke);
 	for (let x = startMarkX; x <= endMarkX; x += newStep) {
 		// 刻度线,刻度线不能直接在场景中绘制，因为缩放变换会导致线的粗细变化
 		const posX = (x - viewport.x) * zoom;
-		rulerGraphicsX.moveTo(posX, rulerY + setting.rulerMarkSize);
-		rulerGraphicsX.lineTo(posX, rulerY);
-		rulerGraphicsX.endFill();
+		tempGraphicsX.moveTo(posX, rulerY + setting.rulerMarkSize);
+		tempGraphicsX.lineTo(posX, rulerY);
+		tempGraphicsX.endFill();
 		// 刻度值
 		const text = new PIXI.Text(String(x), { fontSize: 12, fill: setting.rulerMarkStroke });
 		text.x = posX;
 		text.y = 0;
 		text.anchor.set(0.5, 0);
-		rulerContainerX.addChild(text);
+		tempContainerX.addChild(text);
 	}
-	rulerContainerX.addChild(rulerGraphicsX);
+	rulerContainerX.removeChildren();
+	rulerContainerX.addChild(tempGraphicsX);
+	rulerContainerX.addChild(tempContainerX);
 
 	// Y 坐标的标尺
-	rulerContainerY.removeChildren(); // 清空之前的文本元素
-	rulerGraphicsY.clear();
+	const tempContainerY = new PIXI.Container();
+	const tempGraphicsY = new PIXI.Graphics();
+	tempContainerY.removeChildren(); // 清空之前的文本元素
 	const startMarkY = getClosestVal(viewport.y, newStep);
-	const endMarkY = getClosestVal(Math.ceil(viewport.y + viewport.height! / zoom), newStep);
-	rulerGraphicsY.lineStyle(1, setting.rulerMarkStroke);
+	const endMarkY = getClosestVal(Math.ceil(viewport.y + viewport.height / zoom), newStep);
+	tempGraphicsY.lineStyle(1, setting.rulerMarkStroke);
 	for (let y = startMarkY; y <= endMarkY; y += newStep) {
 		const posY = (y - viewport.y) * zoom;
-		rulerGraphicsY.moveTo(rulerX, posY);
-		rulerGraphicsY.lineTo(rulerX + setting.rulerMarkSize, posY);
-		rulerGraphicsY.endFill();
+		tempGraphicsY.moveTo(rulerX, posY);
+		tempGraphicsY.lineTo(rulerX + setting.rulerMarkSize, posY);
+		tempGraphicsY.endFill();
 		const text = new PIXI.Text(String(y), { fontSize: 12, fill: setting.rulerMarkStroke });
 		text.x = rulerX - 20;
 		text.y = posY;
 		text.anchor.set(0.5, 0);
 		text.rotation = -(Math.PI / 2);
-		rulerContainerY.addChild(text);
+		tempContainerY.addChild(text);
 	}
-	rulerContainerY.addChild(rulerGraphicsY);
+	rulerContainerY.removeChildren();
+	rulerContainerY.addChild(tempGraphicsY);
+	rulerContainerY.addChild(tempContainerY);
 };
 
 // 获取数据
 const { getResult } = useShapeStore();
 const shapes = getResult();
-const shapeGrahpicArr: IGraphic[] = shapes.value.map(({ zIndex, position, color, id, category }) => {
-	const graphics = new PIXI.Graphics();
-	Object.defineProperty(graphics, "id", {
-		value: id,
-		writable: true,
-		enumerable: true,
-		configurable: true,
-	});
-	const [x, y, width, height] = position;
-	const rect = new PIXI.Rectangle(x, y, width, height);
-	graphics.beginFill(color);
-	graphics.drawRect(rect.x, rect.y, width, height);
-	graphics.zIndex = zIndex;
-	return { graphics, id, x, y, width, height, color, zIndex, category };
-});
+
+const shapeGrahpicArr = getShapeGraphicsArr(shapes.value);
 // 更新hiddenItems的数据
 let hiddenItems: Ref<string[]> = ref([]);
 const updateHiddenItems = () => {
@@ -302,11 +280,12 @@ const updateHiddenItems = () => {
 const renderShapes = () => {
 	container.removeChildren();
 	const visibleShapes = shapeGrahpicArr.filter((shape) => !hiddenItems.value.includes(shape.id));
-	visibleShapes.forEach((shape) => {
-		const graphics = shape.graphics;
-		graphics.pivot.set(0.5);
-		container.addChild(graphics);
+	const graphicsArr = visibleShapes.map((shape) => shape.graphics);
+	const graphicsContainer = new PIXI.Container();
+	graphicsArr.forEach((graphics) => {
+		graphicsContainer.addChild(graphics);
 	});
+	container.addChild(graphicsContainer);
 	mainApp.renderer.render(container);
 };
 

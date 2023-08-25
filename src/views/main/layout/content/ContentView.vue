@@ -28,7 +28,7 @@ let zoomValue: Ref<number> = ref(1);
 const scaleHandler = (scale: number) => {
 	// 修改全局的zoom
 	zoomValue.value = scale;
-	canvasView.value?.scaleCenter();
+	canvasView.value?.scaleCenter(scale);
 };
 
 const mouseWheelHandler = (newZoom: number) => {

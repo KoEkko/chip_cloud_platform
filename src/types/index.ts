@@ -11,3 +11,8 @@ export interface IGraphic {
 	zIndex: number;
 	category: string[];
 }
+
+export type Positon = {
+	x: number;
+	y: number;
+};

@@ -1,7 +1,7 @@
 import { Ref, ref } from "vue";
 import { defineStore } from "pinia";
 import { v4 as uuidv4 } from "uuid";
-interface IShape {
+export interface IShape {
 	id: string;
 	value: string;
 	zIndex: number;
