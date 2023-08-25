@@ -13,7 +13,7 @@ import { throttle } from "lodash-es";
 import { useShapeStore } from "../../../../store/modules/shape";
 import useCanvasView from "../../../../hooks/CanvasView";
 import { getClosestVal, getStepByZoom } from "../../../../utils/CalculateRuler";
-import { Positon } from "../../../../types";
+import { Positon, offset } from "../../../../types";
 
 const { getShapeGraphicsArr } = useCanvasView();
 const top = ref<HTMLElement>();
@@ -44,14 +44,57 @@ const mainApp = new PIXI.Application({
 	antialias: true,
 });
 const container = new PIXI.Container();
+
+const setupMainApp = () => {
+	const width = main.value!.clientWidth;
+	const height = main.value!.clientHeight;
+	// zIndex 生效
+	container.sortableChildren = true;
+	// 设置舞台能够交互
+	mainApp.stage.eventMode = "dynamic";
+	// 确保舞台覆盖整个场景
+	mainApp.stage.hitArea = mainApp.screen;
+	// 各种监听
+	mainApp.stage.on("wheel", onMouseWheel);
+	mainApp.stage.on("pointerdown", onDragStart);
+	mainApp.stage.on("pointermove", throttleOnDrag);
+	mainApp.stage.on("pointerup", onDragEnd);
+	mainApp.stage.on("pointerupoutside", onDragEnd);
+	mainApp.renderer.resize(width, height);
+	// 初次渲染所有的图形
+	renderShapes();
+	mainApp.stage.addChild(container);
+	main.value?.appendChild(mainApp.view as any);
+};
+const topApp = new PIXI.Application({
+	background: "#f5f5f5",
+	autoDensity: true,
+	resolution: window.devicePixelRatio,
+	antialias: true,
+});
+const setupTopApp = () => {
+	const width = top.value!.clientWidth;
+	const height = top.value!.clientHeight;
+	topApp.renderer.resize(width, height);
+	topApp.stage.addChild(rulerContainerX);
+	top.value?.appendChild(topApp.view as any);
+};
+const leftApp = new PIXI.Application({
+	background: "#f5f5f5",
+	autoDensity: true,
+	resolution: window.devicePixelRatio,
+	antialias: true,
+});
+const setupLeftApp = () => {
+	const width = left.value!.clientWidth;
+	const height = left.value!.clientHeight;
+	leftApp.renderer.resize(width, height);
+	leftApp.stage.addChild(rulerContainerY);
+	left.value?.appendChild(leftApp.view as any);
+};
 const zoomRef = ref(zoom.value);
 const emits = defineEmits(["onMouseWheel"]);
-type offset = {
-	gx: number;
-	gy: number;
-	cx: number;
-	cy: number;
-};
+
 const calculateOffset = (offset: offset, currScale: number, prevScale: number) => {
 	// 获取鼠标、画布中心的位置
 	const { gx, gy, cx, cy } = offset;
@@ -72,7 +115,6 @@ const scaleCenter = (newZoom: number) => {
 	const { width: gx, height: gy } = mainApp.screen;
 	const { x: cx, y: cy } = container;
 	const prevScale = zoomRef.value;
-	console.log(zoom.value, prevScale);
 	calculateOffset({ gx, gy, cx, cy }, newZoom, prevScale);
 };
 defineExpose({ scaleCenter });
@@ -97,28 +139,8 @@ const onMouseWheel = (e: PIXI.FederatedWheelEvent) => {
 	emits("onMouseWheel", zoomRef.value);
 	calculateOffset({ gx, gy, cx, cy }, zoomRef.value, prevScale);
 };
-const setupMainApp = () => {
-	const width = main.value!.clientWidth;
-	const height = main.value!.clientHeight;
 
-	container.sortableChildren = true;
-	// 设置舞台能够交互
-	mainApp.stage.eventMode = "dynamic";
-	// 确保舞台覆盖整个场景
-	mainApp.stage.hitArea = mainApp.screen;
-	// 各种监听
-	mainApp.stage.on("wheel", onMouseWheel);
-	mainApp.stage.on("pointerdown", onDragStart);
-	mainApp.stage.on("pointermove", throttleOnDrag);
-	mainApp.stage.on("pointerup", onDragEnd);
-	mainApp.stage.on("pointerupoutside", onDragEnd);
-	mainApp.renderer.resize(width, height);
-	// 初次渲染所有的图形
-	renderShapes();
-	mainApp.stage.addChild(container);
-	main.value?.appendChild(mainApp.view as any);
-};
-
+// 拖拽画布的实现
 let isDragging = false;
 let lastPosition = new PIXI.Point();
 const onDragStart = (e: PIXI.FederatedPointerEvent) => {
@@ -148,34 +170,9 @@ const onDragEnd = () => {
 	isDragging = false;
 };
 
+// 标尺容器
 const rulerContainerX = new PIXI.Container();
 const rulerContainerY = new PIXI.Container();
-const topApp = new PIXI.Application({
-	background: "#f5f5f5",
-	autoDensity: true,
-	resolution: window.devicePixelRatio,
-	antialias: true,
-});
-const setupTopApp = () => {
-	const width = top.value!.clientWidth;
-	const height = top.value!.clientHeight;
-	topApp.renderer.resize(width, height);
-	topApp.stage.addChild(rulerContainerX);
-	top.value?.appendChild(topApp.view as any);
-};
-const leftApp = new PIXI.Application({
-	background: "#f5f5f5",
-	autoDensity: true,
-	resolution: window.devicePixelRatio,
-	antialias: true,
-});
-const setupLeftApp = () => {
-	const width = left.value!.clientWidth;
-	const height = left.value!.clientHeight;
-	leftApp.renderer.resize(width, height);
-	leftApp.stage.addChild(rulerContainerY);
-	left.value?.appendChild(leftApp.view as any);
-};
 
 // 定义标尺的样式
 const setting = {
@@ -193,12 +190,14 @@ const getMainRectBound = computed(() => {
 		height: main.value?.clientHeight,
 	};
 });
+// 视口位置
 const viewport = {
 	x: 0,
 	y: 0,
 	width: 0,
 	height: 0,
 };
+// 场景坐标
 const getSceneCoords = (position: Positon = { x: 0, y: 0 }) => {
 	const RectBound = getMainRectBound;
 	const { width, height } = RectBound.value;

@@ -16,3 +16,10 @@ export type Positon = {
 	x: number;
 	y: number;
 };
+
+export type offset = {
+	gx: number;
+	gy: number;
+	cx: number;
+	cy: number;
+};
