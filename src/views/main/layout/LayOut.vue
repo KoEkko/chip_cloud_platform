@@ -1,27 +1,50 @@
 <template>
-	<TabsBar>
-		<template #header><HeaderView @handler-clear="handlerClear" /></template>
-		<template #footer>
-			<TerminalView />
-		</template>
-		<template #content>
-			<CanvasView ref="contentRef"></CanvasView>
-		</template>
-		<template #control>
-			<ControlTools></ControlTools>
-		</template>
-	</TabsBar>
+	<a-layout style="height: 100vh">
+		<!-- <TabsBar /> -->
+		<a-layout>
+			<div class="header">
+				<DropDown />
+			</div>
+			<a-layout-content>
+				<ContentView />
+			</a-layout-content>
+			<a-layout-footer>
+				<TerminalView class="terminal" />
+			</a-layout-footer>
+		</a-layout>
+	</a-layout>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import TabsBar from "./tabs/TabsBar.vue";
+import DropDown from "./header/DropDown.vue";
 import TerminalView from "./terminal/TerminalView.vue";
-import HeaderView from "./header/HeaderView.vue";
-import CanvasView from "./content/CanvasView.vue";
-import ControlTools from "./content/ControlTools.vue";
-const contentRef = ref<InstanceType<typeof CanvasView>>();
-function handlerClear() {
-	contentRef.value?.handleCanvasClear();
-}
+import ContentView from "./content/ContentView.vue";
 </script>
+
+<style lang="scss" scoped>
+.header {
+	background-color: #fff;
+	display: flex;
+	align-items: center;
+	gap: 20px;
+}
+
+.ant-layout-footer {
+	margin-top: 10px;
+	height: 25vh;
+	padding: 0px;
+}
+.terminal {
+	height: 100%;
+}
+div#terminal-container {
+	height: 100%;
+	width: 100%;
+	.terminal.xterm.xterm-dom-renderer-owner-1 {
+		height: 100%;
+	}
+	.xterm-screen {
+		height: 100%;
+	}
+}
+</style>
