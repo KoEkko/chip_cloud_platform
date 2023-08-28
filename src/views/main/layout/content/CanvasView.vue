@@ -7,7 +7,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, toRefs, watch, type Ref, computed } from "vue";
+import { onMounted, ref, toRefs, watch, type Ref } from "vue";
 import * as PIXI from "pixi.js";
 import { throttle } from "lodash-es";
 import { useShapeStore } from "../../../../store/modules/shape";
@@ -24,14 +24,16 @@ const props = defineProps<{
 	checkedOptions: string[];
 	zoom: number;
 }>();
-// zoom 是放缩比， zoom 越大 step越大
+// zoom 是缩放比， zoom 越大 step越小
 const { checkedOptions, zoom } = toRefs(props);
+// 记录画布总偏移量
 let totalOffset = { x: 0, y: 0 };
-
+// 监听画布右侧的选项变化
 watch(checkedOptions, () => {
 	updateHiddenItems();
 	renderShapes();
 });
+// 监听(点击放大缩小按钮)、(鼠标滚轮)时zoom的变化来重新刻画标尺
 watch(zoom, (newZoom) => {
 	updateRuler(newZoom, totalOffset);
 });
@@ -48,6 +50,8 @@ const container = new PIXI.Container();
 const setupMainApp = () => {
 	const width = main.value!.clientWidth;
 	const height = main.value!.clientHeight;
+	mainAppRectBound.width = width;
+	mainAppRectBound.height = height;
 	// zIndex 生效
 	container.sortableChildren = true;
 	// 设置舞台能够交互
@@ -92,6 +96,11 @@ const setupLeftApp = () => {
 	leftApp.stage.addChild(rulerContainerY);
 	left.value?.appendChild(leftApp.view as any);
 };
+/**
+ * zoomRef是为了修改zoom而增的变量
+ * 根据数据的单向流通性，父组件传递的 zoom 不能直接在子组件中修改
+ * 通过emit事件通知父组件修改
+ */
 const zoomRef = ref(zoom.value);
 const emits = defineEmits(["onMouseWheel"]);
 
@@ -129,7 +138,7 @@ const onMouseWheel = (e: PIXI.FederatedWheelEvent) => {
 	const prevScale = zoom.value;
 	// 鼠标滚轮的方向
 	const deltaY = e.deltaY;
-	// ↑为缩小， ↓为放大
+	// ↑为放大， ↓为缩小
 	zoomRef.value += deltaY < 0 ? 0.1 : -0.1;
 	// 最小的zoom值
 	if (zoomRef.value < 0.2) {
@@ -158,8 +167,8 @@ const onDrag = (e: PIXI.FederatedPointerEvent) => {
 		const dy = (globalY - lastPosition.y) / zoom.value;
 		totalOffset.x += dx;
 		totalOffset.y += dy;
-		container.position.x -= dx;
-		container.position.y -= dy;
+		container.x -= dx;
+		container.y -= dy;
 		updateRuler(zoom.value, totalOffset);
 		lastPosition.set(globalX, globalY);
 	}
@@ -183,13 +192,10 @@ const setting = {
 const rulerX = 20;
 const rulerY = 20;
 
-// 减少频繁计算 main 的client
-const getMainRectBound = computed(() => {
-	return {
-		width: main.value?.clientWidth,
-		height: main.value?.clientHeight,
-	};
-});
+const mainAppRectBound = {
+	width: 0,
+	height: 0,
+};
 // 视口位置
 const viewport = {
 	x: 0,
@@ -199,8 +205,7 @@ const viewport = {
 };
 // 场景坐标
 const getSceneCoords = (position: Positon = { x: 0, y: 0 }) => {
-	const RectBound = getMainRectBound;
-	const { width, height } = RectBound.value;
+	const { width, height } = mainAppRectBound;
 	viewport.x = position.x / zoom.value;
 	viewport.y = position.y / zoom.value;
 	viewport.width = width!;
@@ -290,13 +295,17 @@ const renderShapes = () => {
 
 // 自适应
 function resizeRender() {
-	const width = main.value!.clientWidth;
-	const height = main.value!.clientHeight;
+	const mainClientRects = main.value!.getClientRects();
+	const { width, height } = mainClientRects[0];
+	// 更新
+	mainAppRectBound.width = width;
+	mainAppRectBound.height = height;
 	mainApp.renderer.resize(width, height);
 	topApp.renderer.resize(width, 22);
 	leftApp.renderer.resize(22, height);
+	updateRuler(zoom.value, totalOffset);
 }
-const throttleResizeRender = throttle(resizeRender, 200);
+const throttleResizeRender = throttle(resizeRender, 100);
 window.addEventListener("resize", throttleResizeRender);
 
 onMounted(() => {
