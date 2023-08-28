@@ -1,3 +1,27 @@
+// 视口坐标转化为场景坐标
+const viewportCoordsToSceneCoords = (x: number, y: number, scrollX: number, scrollY: number, zoom: number) => {
+	return {
+		x: scrollX + x / zoom,
+		y: scrollY + y / zoom,
+	};
+};
+// 场景坐标转化为视口坐标
+const sceneCoordsToViewportCoords = (x: number, y: number, scrollX: number, scrollY: number, zoom: number) => {
+	return {
+		x: (x - scrollX) * zoom,
+		y: (y - scrollY) * zoom,
+	};
+};
+// 根据光标缩放调整视口的位置
+const calScrollVal = (cx: number, cy: number, prevZoom: number, zoom: number, scrollX: number, scrollY: number) => {
+	const { x: sceneX, y: sceneY } = viewportCoordsToSceneCoords(cx, cy, prevZoom, scrollX, scrollY);
+	const newScrollX = sceneX - cx / zoom;
+	const newScrollY = sceneY - cy / zoom;
+	return {
+		x: newScrollX,
+		y: newScrollY,
+	};
+};
 /**
  * 根据放缩比计算出刻度间隔
  * @param zoom 放缩比
@@ -23,4 +47,4 @@ const getClosestVal = (value: number, segment: number) => {
 	return value - left <= right - value ? left : right;
 };
 
-export { getClosestVal, getStepByZoom };
+export { getClosestVal, getStepByZoom, viewportCoordsToSceneCoords, sceneCoordsToViewportCoords, calScrollVal };

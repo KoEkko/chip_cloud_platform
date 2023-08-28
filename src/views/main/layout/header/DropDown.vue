@@ -7,13 +7,13 @@
 		<template #overlay>
 			<a-menu>
 				<a-menu-item key="0">
-					<a href="">1st menu item</a>
+					<a href="">1st</a>
 				</a-menu-item>
 				<a-menu-item key="1">
-					<a href="">2nd menu item</a>
+					<a href="">2nd</a>
 				</a-menu-item>
 				<a-menu-divider />
-				<a-menu-item key="3">3rd menu item</a-menu-item>
+				<a-menu-item key="3">3rd</a-menu-item>
 			</a-menu>
 		</template>
 	</a-dropdown>

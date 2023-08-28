@@ -71,7 +71,7 @@ const setupMainApp = () => {
 	main.value?.appendChild(mainApp.view as any);
 };
 const topApp = new PIXI.Application({
-	background: "#f5f5f5",
+	background: "#ffffff",
 	autoDensity: true,
 	resolution: window.devicePixelRatio,
 	antialias: true,
@@ -84,7 +84,7 @@ const setupTopApp = () => {
 	top.value?.appendChild(topApp.view as any);
 };
 const leftApp = new PIXI.Application({
-	background: "#f5f5f5",
+	background: "#ffffff",
 	autoDensity: true,
 	resolution: window.devicePixelRatio,
 	antialias: true,
