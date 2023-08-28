@@ -5,18 +5,18 @@
 // Read more: https://github.com/vuejs/core/pull/3399
 export {}
 
-declare module 'vue' {
-  export interface GlobalComponents {
-    ADropdown: typeof import('ant-design-vue/es')['Dropdown']
-    AInput: typeof import('ant-design-vue/es')['Input']
-    ALayout: typeof import('ant-design-vue/es')['Layout']
-    ALayoutContent: typeof import('ant-design-vue/es')['LayoutContent']
-    ALayoutFooter: typeof import('ant-design-vue/es')['LayoutFooter']
-    AMenu: typeof import('ant-design-vue/es')['Menu']
-    AMenuDivider: typeof import('ant-design-vue/es')['MenuDivider']
-    AMenuItem: typeof import('ant-design-vue/es')['MenuItem']
-    ProjectComponent: typeof import('./src/components/ProjectComponent/ProjectComponent.vue')['default']
-    RouterLink: typeof import('vue-router')['RouterLink']
-    RouterView: typeof import('vue-router')['RouterView']
-  }
+declare module "vue" {
+	export interface GlobalComponents {
+		ADropdown: (typeof import("ant-design-vue/es"))["Dropdown"];
+		AInput: (typeof import("ant-design-vue/es"))["Input"];
+		ALayout: (typeof import("ant-design-vue/es"))["Layout"];
+		ALayoutContent: (typeof import("ant-design-vue/es"))["LayoutContent"];
+		ALayoutFooter: (typeof import("ant-design-vue/es"))["LayoutFooter"];
+		AMenu: (typeof import("ant-design-vue/es"))["Menu"];
+		AMenuDivider: (typeof import("ant-design-vue/es"))["MenuDivider"];
+		AMenuItem: (typeof import("ant-design-vue/es"))["MenuItem"];
+		ProjectComponent: (typeof import("./src/components/ProjectComponent/ProjectComponent.vue"))["default"];
+		RouterLink: (typeof import("vue-router"))["RouterLink"];
+		RouterView: (typeof import("vue-router"))["RouterView"];
+	}
 }
