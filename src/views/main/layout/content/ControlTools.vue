@@ -11,7 +11,7 @@
 				<template v-for="child in options" :key="child.id">
 					<div class="item">
 						<div class="i1"></div>
-						<div :class="[{ i2: getStyle(child) }, { i22: !getStyle(child) }]">{{ child.value }}</div>
+						<div :class="[{ i2: getStyle(child) }, { i22: !getStyle(child) }]">{{ child.layername }}</div>
 						<div class="i3"><input type="checkbox" @click="onCheckBoxClick(child)" /></div>
 					</div>
 				</template>
@@ -22,10 +22,9 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { v4 as uuidv4 } from "uuid";
 type Toptions = {
 	id: string;
-	value: string;
+	layername: string;
 	pid?: string;
 };
 
@@ -33,7 +32,7 @@ const emit = defineEmits(["onCheckBoxClick"]);
 
 let checkedOptions: string[] = [];
 const onCheckBoxClick = (child: Toptions) => {
-	const option = child.value;
+	const option = child.layername;
 	if (checkedOptions.includes(option)) {
 		checkedOptions = checkedOptions.filter((o) => o !== option);
 	} else {
@@ -41,23 +40,15 @@ const onCheckBoxClick = (child: Toptions) => {
 	}
 	emit("onCheckBoxClick", checkedOptions);
 };
+const options = ref<Toptions[]>();
 
-const options = ref<Toptions[]>([
-	{ id: uuidv4(), value: "Shape", pid: "1" },
-	{ id: uuidv4(), value: "Instance Pin" },
-	{ id: uuidv4(), value: "Instance Obs" },
-	{ id: uuidv4(), value: "Instance Pdn" },
-	{ id: uuidv4(), value: "IO Pin" },
-	{ id: uuidv4(), value: "Instance", pid: "2" },
-	{ id: uuidv4(), value: "Standard Cell" },
-	{ id: uuidv4(), value: "IO Cell" },
-	{ id: uuidv4(), value: "Block" },
-	{ id: uuidv4(), value: "Pad" },
-	{ id: uuidv4(), value: "Net", pid: "3" },
-	{ id: uuidv4(), value: "Signal" },
-	{ id: uuidv4(), value: "Clock" },
-	{ id: uuidv4(), value: "Power" },
-]);
+setTimeout(() => {
+	fetch("/js/final_design.json")
+		.then((res) => res.json())
+		.then((data) => {
+			options.value = data.layerInfo;
+		});
+}, 100);
 
 const getStyle = function (value: Toptions) {
 	return !!value.pid;

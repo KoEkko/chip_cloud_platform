@@ -9,7 +9,37 @@ export interface IShape {
 	color: number;
 	category: string[];
 }
-
+interface LayerInfo {
+	id: number;
+	name: string;
+}
+export interface DataObject {
+	type: string;
+	id?: string;
+	groupId?: string;
+	children?: DataObject[];
+	layer?: number;
+	align?: number;
+	width?: number;
+	height?: number;
+	pathType?: number;
+	rotate?: number;
+	path?: [number, number][];
+	origin?: number[];
+	val?: string;
+	layerData?: string;
+	data?: DataObject;
+}
+export interface IMock {
+	projectId: string;
+	projectName: string;
+	lastModify: number;
+	unit?: string;
+	dieArea: {};
+	version: string;
+	layerInfo: LayerInfo[];
+	data: DataObject[];
+}
 export const useShapeStore = defineStore("shapeStore", () => {
 	const shapes = ref<IShape[]>([
 		{
@@ -37,7 +67,6 @@ export const useShapeStore = defineStore("shapeStore", () => {
 			category: ["Clock", "IO Cell", "Block"],
 		},
 	]);
-
 	const getResult: () => Ref<IShape[]> = () => {
 		return shapes;
 	};

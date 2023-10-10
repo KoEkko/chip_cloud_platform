@@ -95,8 +95,8 @@ const runFakeTerminal = async () => {
 			prompt();
 			// 监听服务端发送过来的消息
 			ws.onmessage = function (messageObj) {
-				terminalStore.result = messageObj.data;
-				const resData = JSON.parse(terminalStore.result);
+				terminalStore.shape = messageObj.data;
+				const resData = JSON.parse(terminalStore.shape);
 				if (resData.type === "msg") {
 					// 将log打印到terminal上
 					writeln(resData.data);

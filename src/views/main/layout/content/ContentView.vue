@@ -1,12 +1,7 @@
 <template>
 	<ToolsArea @scale-control="scaleHandler" />
 	<div class="content-box">
-		<CanvasView
-			ref="canvasView"
-			:checked-options="checkedOptions"
-			:zoom="zoomValue"
-			@on-mouse-wheel="mouseWheelHandler"
-		/>
+		<CanvasView :checked-options="checkedOptions" :zoom="zoomValue" :flag="flag" @on-mouse-wheel="mouseWheelHandler" />
 		<ControlTools @on-check-box-click="onCheckBoxChange" />
 	</div>
 </template>
@@ -17,18 +12,17 @@ import CanvasView from "./CanvasView.vue";
 import ControlTools from "./ControlTools.vue";
 import ToolsArea from "./ToolsArea.vue";
 
-const canvasView = ref<InstanceType<typeof CanvasView>>();
 const checkedOptions: Ref<string[]> = ref([]);
 const onCheckBoxChange = (options: string[]) => {
 	checkedOptions.value = Array.from(options);
 };
 
 let zoomValue: Ref<number> = ref(1);
-
+let flag: Ref<boolean> = ref(true);
 const scaleHandler = (scale: number) => {
 	// 修改全局的zoom
 	zoomValue.value = scale;
-	canvasView.value?.scaleCenter(scale);
+	flag.value = !flag.value;
 };
 
 const mouseWheelHandler = (newZoom: number) => {
