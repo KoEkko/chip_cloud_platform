@@ -7,10 +7,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, toRefs, watch, type Ref } from "vue";
+import { onMounted, ref, toRefs, watch } from "vue";
 import * as PIXI from "pixi.js";
-import { throttle, cloneDeep } from "lodash-es";
-import { DataObject } from "../../../../store/modules/shape";
+import { throttle } from "lodash-es";
 // import useCanvasView from "../../../../hooks/CanvasView";
 import { getClosestVal, getStepByZoom } from "../../../../utils/CalculateRuler";
 import { Positon, offset } from "../../../../types";
@@ -31,12 +30,8 @@ const { checkedOptions, zoom, flag } = toRefs(props);
 let totalOffset = { x: 0, y: 0 };
 // 监听画布右侧的选项变化
 watch(checkedOptions, (newValue) => {
-	if (newValue.length > 0) {
-		updateFilteredData();
-		filteredData.value.length > 0 ? renderShapes(filteredData.value) : renderShapes(DataJson.data);
-	} else {
-		renderShapes(DataJson.data);
-	}
+	const res = matchLayerContainers(newValue);
+	reRender(res);
 });
 // 监听(点击放大缩小按钮)、(鼠标滚轮)时zoom的变化来重新刻画标尺
 watch(zoom, (newZoom) => {
@@ -52,7 +47,7 @@ const mainApp = new PIXI.Application({
 	resolution: window.devicePixelRatio,
 	antialias: true,
 });
-const container = new PIXI.Container();
+const ParentContainer = new PIXI.Container();
 
 const setupMainApp = () => {
 	const width = main.value!.clientWidth;
@@ -60,7 +55,7 @@ const setupMainApp = () => {
 	mainAppRectBound.width = width;
 	mainAppRectBound.height = height;
 	// zIndex 生效
-	container.sortableChildren = true;
+	ParentContainer.sortableChildren = true;
 	// 设置舞台能够交互
 	mainApp.stage.eventMode = "dynamic";
 	// 确保舞台覆盖整个场景
@@ -74,7 +69,7 @@ const setupMainApp = () => {
 	mainApp.renderer.resize(width, height);
 	// 初次渲染所有的图形
 	// renderShapes(DataJson.data);
-	mainApp.stage.addChild(container);
+	mainApp.stage.addChild(ParentContainer);
 	main.value?.appendChild(mainApp.view as any);
 };
 const topApp = new PIXI.Application({
@@ -120,16 +115,16 @@ const calculateOffset = (offset: offset, currScale: number, prevScale: number) =
 	const dx = (gx - cx) * (1 - scaleDiff);
 	const dy = (gy - cy) * (1 - scaleDiff);
 	// container做相对应的移动、缩放
-	container.scale.set(currScale);
-	container.x += dx;
-	container.y += dy;
+	ParentContainer.scale.set(currScale);
+	ParentContainer.x += dx;
+	ParentContainer.y += dy;
 	totalOffset.x -= dx;
 	totalOffset.y -= dy;
 };
 // 按照中心点来缩放
 const scaleCenter = (newZoom: number) => {
 	const { width: gx, height: gy } = mainApp.screen;
-	const { x: cx, y: cy } = container;
+	const { x: cx, y: cy } = ParentContainer;
 	const prevScale = zoomRef.value;
 	calculateOffset({ gx, gy, cx, cy }, newZoom, prevScale);
 };
@@ -139,7 +134,7 @@ const onMouseWheel = (e: PIXI.FederatedWheelEvent) => {
 	// 获取鼠标的位置
 	const { x: gx, y: gy } = e.global;
 	// 获取container的位置
-	const { x: cx, y: cy } = container;
+	const { x: cx, y: cy } = ParentContainer;
 	// 最后一次的zoom值
 	const prevScale = zoom.value;
 	// 鼠标滚轮的方向
@@ -173,8 +168,8 @@ const onDrag = (e: PIXI.FederatedPointerEvent) => {
 		const dy = (globalY - lastPosition.y) / zoom.value;
 		totalOffset.x += dx;
 		totalOffset.y += dy;
-		container.x -= dx;
-		container.y -= dy;
+		ParentContainer.x -= dx;
+		ParentContainer.y -= dy;
 		updateRuler(zoom.value, totalOffset);
 		lastPosition.set(globalX, globalY);
 	}
@@ -277,107 +272,178 @@ const updateRuler = (zoom: number, position: Positon = { x: 0, y: 0 }) => {
 // 获取数据
 // const shapes = getResult();
 let DataJson: any = null;
-const dataMap: Record<string, number> = {};
+let groupedData: GroupedData = {};
 
+const layerInfoMap: Record<string, number> = {};
+const layerContainerMap: Map<number, PIXI.Container> = new Map();
 setTimeout(() => {
 	fetch("/js/final_design.json")
 		.then((res) => res.json())
 		.then((data) => {
 			DataJson = data;
 			for (const ele of DataJson.layerInfo) {
-				dataMap[ele.layername] = ele.id;
+				layerInfoMap[ele.layername] = ele.id;
 			}
-			// 初次渲染所有的图形
-			renderShapes(DataJson.data);
+			groupedData = groupDataByLayer(DataJson.data);
+			console.log(groupedData);
+			for (const layer in groupedData) {
+				const childContainer = new PIXI.Container();
+				for (const ele of groupedData[layer]) {
+					const object = createObjectFromElement(ele);
+					childContainer.addChild(object);
+				}
+				layerContainerMap.set(Number(layer), childContainer);
+				ParentContainer.addChild(childContainer);
+			}
+			mainApp.renderer.render(ParentContainer);
 		});
 }, 100);
 // 更新hiddenItems的数据
-let filteredData: Ref<DataObject[]> = ref([]);
-const updateFilteredData = () => {
-	filteredData.value = filterDataByLayer(DataJson.data, checkedOptions.value);
+const matchLayerContainers = (layers: string[]) => {
+	let layerContainers: PIXI.Container[] = [];
+	if (layers.length === 0) {
+		[...layerContainerMap.entries()].forEach((container) => {
+			layerContainers.push(container[1]);
+		});
+	} else {
+		for (const layer of layers) {
+			const layerId = layerInfoMap[layer];
+			const layerContainer = layerContainerMap.get(layerId);
+			if (layerContainer !== undefined) layerContainers.push(layerContainer);
+		}
+	}
+	console.log("匹配到的layercontainer", layerContainers);
+	return layerContainers;
+};
+// 重新渲染
+const reRender = (containers: PIXI.Container[]) => {
+	ParentContainer.removeChildren();
+	containers.forEach((container) => {
+		ParentContainer.addChild(container);
+	});
+	mainApp.renderer.render(ParentContainer);
 };
 
-const filterDataByLayer = (data: DataObject[], layers: string[]): DataObject[] => {
-	return data.reduce((filteredData: DataObject[], item) => {
-		let filteredItem = cloneDeep(item); // 创建新的对象以避免修改原始对象
-		if (layers.some((layer) => dataMap[layer] === item.layer)) {
-			filteredData.push(filteredItem);
-		} else if (item.children && item.children.length > 0) {
-			filteredItem.children = filterDataByLayer(item.children, layers);
-			if (filteredItem.children.length > 0) {
-				filteredData.push(filteredItem);
-			}
-		}
-		return filteredData;
-	}, []);
-};
 function parse(num: number) {
 	return parseFloat((num / 100).toFixed(3));
 }
-const createGraphicsFromElement = (element: DataObject) => {
-	let graphics;
+
+interface Group {
+	type: "group";
+	structName: string;
+	children?: Item[];
+}
+interface Path {
+	type: "path";
+	datatype: number;
+	pathtype: number;
+	width: number;
+	layer: number;
+	path: number[][];
+}
+interface Box {
+	type: "box";
+	id: string;
+	layer: number;
+	path: number[][];
+}
+type Item = Group | Path | Box;
+interface GroupedData {
+	[layer: number]: Item[];
+}
+const groupDataByLayer = (data: Item[]) => {
+	const groupedData: GroupedData = {};
+	for (const item of data) {
+		if (item.type === "group") {
+			if (item.children) {
+				const childrenData = groupDataByLayer(item.children);
+				mergeGroupedData(groupedData, childrenData);
+			}
+		} else if (item.type === "box" || item.type === "path") {
+			if (item.layer !== undefined) {
+				if (!groupedData[item.layer]) {
+					groupedData[item.layer] = [];
+				}
+				groupedData[item.layer].push(item);
+			}
+		}
+	}
+	return groupedData;
+};
+const mergeGroupedData = (target: GroupedData, source: GroupedData) => {
+	for (const layer in source) {
+		if (!target[layer]) {
+			target[layer] = [];
+		}
+		target[layer].push(...source[layer]);
+	}
+};
+
+const graphics = new PIXI.Graphics();
+const ElementContainer = new PIXI.Container();
+const createObjectFromElement = (element: Item): PIXI.Graphics | PIXI.Container => {
+	let object;
 	switch (element.type) {
 		case "path":
-			graphics = new PIXI.Graphics();
-			graphics.lineStyle(element.width!, 0xffffff);
-			graphics.moveTo(element.path![0][0], element.path![0][1]);
+			object = graphics;
+			object.lineStyle(element.width!, 0xffffff);
+			object.moveTo(element.path![0][0], element.path![0][1]);
 			for (let i = 1; i < element.path!.length; i++) {
 				const x = element.path![i][0];
 				const y = element.path![i][1];
-				graphics.lineTo(x, y);
+				object.lineTo(x, y);
 			}
 			break;
 		case "box": {
-			graphics = new PIXI.Graphics();
-			graphics.lineStyle(0.2, 0xffffff);
-			graphics.moveTo(parse(element.path![0][0]), parse(element.path![0][1]));
+			object = graphics;
+			object.lineStyle(0.2, 0xffffff);
+			object.moveTo(parse(element.path![0][0]), parse(element.path![0][1]));
 			for (let i = 1; i < element.path!.length; i++) {
-				graphics.lineTo(parse(element.path![i][0]), parse(element.path![i][1]));
+				object.lineTo(parse(element.path![i][0]), parse(element.path![i][1]));
 			}
-			graphics.closePath();
-			break;
-		}
-
-		case "polygon":
-			graphics = new PIXI.Graphics();
-			graphics.lineStyle(2, 0x0000ff);
-			graphics.moveTo(element.path![0][0], element.path![0][1]);
-			for (let i = 1; i < element.path!.length; i++) {
-				graphics.lineTo(element.path![i][0], element.path![i][1]);
-			}
-			graphics.closePath();
-			break;
-		case "text": {
-			const style = new PIXI.TextStyle({ fill: 0xffffff });
-			const text = new PIXI.Text(element.val, style);
-			text.x = element.origin![0];
-			text.y = element.origin![1];
-			graphics = text;
+			object.closePath();
 			break;
 		}
 		case "group": {
-			graphics = new PIXI.Container();
+			object = ElementContainer;
 			for (const childElement of element.children!) {
-				const childGraphics = createGraphicsFromElement(childElement);
-				graphics.addChild(childGraphics!);
+				const childGraphics = createObjectFromElement(childElement);
+				object.addChild(childGraphics!);
 			}
 			break;
 		}
+		// case "polygon":
+		// 	object = graphics;
+		// 	object.lineStyle(0.2, 0xffffff);
+		// 	object.moveTo(element.path![0][0], element.path![0][1]);
+		// 	for (let i = 1; i < element.path!.length; i++) {
+		// 		object.lineTo(element.path![i][0], element.path![i][1]);
+		// 	}
+		// 	object.closePath();
+		// 	break;
+		// case "text": {
+		// 	object = text;
+		// 	object.style = { fill: 0xffffff };
+		// 	object.text = element.val!;
+		// 	object.x = element.origin![0];
+		// 	object.y = element.origin![1];
+		// 	break;
+		// }
 		default:
 			// 未知的元素类型
-			graphics = new PIXI.Graphics();
+			object = new PIXI.Graphics();
 			break;
 	}
-	return graphics;
+	return object;
 };
-const renderShapes = (DataObject: DataObject[]) => {
-	container.removeChildren();
-	for (let i = 0; i < DataObject.length; i++) {
-		const graphics = createGraphicsFromElement(DataObject[i]);
-		container.addChild(graphics!);
-	}
-	mainApp.renderer.render(container);
-};
+// const renderShapes = (DataObject: Item[]) => {
+// 	ParentContainer.removeChildren();
+// 	for (let i = 0; i < DataObject.length; i++) {
+// 		const object = createObjectFromElement(DataObject[i]);
+// 		ParentContainer.addChild(object!);
+// 	}
+// 	mainApp.renderer.render(ParentContainer);
+// };
 // 自适应
 function resizeRender() {
 	const mainClientRects = main.value!.getClientRects();
