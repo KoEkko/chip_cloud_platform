@@ -269,65 +269,6 @@ const updateRuler = (zoom: number, position: Positon = { x: 0, y: 0 }) => {
 	rulerContainerY.addChild(tempContainerY);
 };
 
-// 获取数据
-// const shapes = getResult();
-let DataJson: any = null;
-let groupedData: GroupedData = {};
-
-const layerInfoMap: Record<string, number> = {};
-const layerContainerMap: Map<number, PIXI.Container> = new Map();
-setTimeout(() => {
-	fetch("/js/final_design.json")
-		.then((res) => res.json())
-		.then((data) => {
-			DataJson = data;
-			for (const ele of DataJson.layerInfo) {
-				layerInfoMap[ele.layername] = ele.id;
-			}
-			groupedData = groupDataByLayer(DataJson.data);
-			console.log(groupedData);
-			for (const layer in groupedData) {
-				const childContainer = new PIXI.Container();
-				for (const ele of groupedData[layer]) {
-					const object = createObjectFromElement(ele);
-					childContainer.addChild(object);
-				}
-				layerContainerMap.set(Number(layer), childContainer);
-				ParentContainer.addChild(childContainer);
-			}
-			mainApp.renderer.render(ParentContainer);
-		});
-}, 100);
-// 更新hiddenItems的数据
-const matchLayerContainers = (layers: string[]) => {
-	let layerContainers: PIXI.Container[] = [];
-	if (layers.length === 0) {
-		[...layerContainerMap.entries()].forEach((container) => {
-			layerContainers.push(container[1]);
-		});
-	} else {
-		for (const layer of layers) {
-			const layerId = layerInfoMap[layer];
-			const layerContainer = layerContainerMap.get(layerId);
-			if (layerContainer !== undefined) layerContainers.push(layerContainer);
-		}
-	}
-	console.log("匹配到的layercontainer", layerContainers);
-	return layerContainers;
-};
-// 重新渲染
-const reRender = (containers: PIXI.Container[]) => {
-	ParentContainer.removeChildren();
-	containers.forEach((container) => {
-		ParentContainer.addChild(container);
-	});
-	mainApp.renderer.render(ParentContainer);
-};
-
-function parse(num: number) {
-	return parseFloat((num / 100).toFixed(3));
-}
-
 interface Group {
 	type: "group";
 	structName: string;
@@ -351,6 +292,76 @@ type Item = Group | Path | Box;
 interface GroupedData {
 	[layer: number]: Item[];
 }
+
+// 分组的数据
+let groupedData: GroupedData = {};
+
+// layerInfo 的映射
+const layerInfoMap: Record<string, number> = {};
+// layerContainer 的映射
+const layerContainerMap: Map<number, PIXI.Container> = new Map();
+
+// 每一层创建一个container
+const createChildContainer = (value: Item[]) => {
+	const childContainer = new PIXI.Container();
+	const Graphics = new PIXI.Graphics();
+	for (const item of value) {
+		const object = createObjectFromElement(item, Graphics);
+		childContainer.addChild(object);
+	}
+	return childContainer;
+};
+
+setTimeout(() => {
+	fetch("/js/final_design.json")
+		.then((res) => res.json())
+		.then((data) => {
+			for (const ele of data.layerInfo) {
+				layerInfoMap[ele.layername] = ele.id;
+			}
+			groupedData = groupDataByLayer(data.data);
+			const entries: [string, Item[]][] = Object.entries(groupedData);
+			for (const [key, value] of entries) {
+				const childContainer = createChildContainer(value);
+				layerContainerMap.set(Number(key), childContainer);
+				ParentContainer.addChild(childContainer);
+			}
+			mainApp.renderer.render(ParentContainer);
+		});
+}, 100);
+
+// 筛选不同的层匹配对应的Container
+const matchLayerContainers = (layers: string[]) => {
+	const layerContainers: PIXI.Container[] = [];
+	if (layers.length === 0) {
+		// 没有勾选任何层，说明是渲染全部内容
+		[...layerContainerMap.entries()].forEach((container) => {
+			layerContainers.push(container[1]);
+		});
+	} else {
+		for (const layer of layers) {
+			const layerId = layerInfoMap[layer];
+			const layerContainer = layerContainerMap.get(layerId);
+			if (layerContainer !== undefined) layerContainers.push(layerContainer);
+		}
+	}
+	return layerContainers;
+};
+// 根据匹配的Container重新渲染
+const reRender = (containers: PIXI.Container[]) => {
+	ParentContainer.removeChildren();
+	containers.forEach((container) => {
+		ParentContainer.addChild(container);
+	});
+	mainApp.renderer.render(ParentContainer);
+};
+
+// 路劲path转化
+function parse(num: number) {
+	return parseFloat((num / 100).toFixed(3));
+}
+
+// 根据 layer 将数据分组
 const groupDataByLayer = (data: Item[]) => {
 	const groupedData: GroupedData = {};
 	for (const item of data) {
@@ -361,31 +372,28 @@ const groupDataByLayer = (data: Item[]) => {
 			}
 		} else if (item.type === "box" || item.type === "path") {
 			if (item.layer !== undefined) {
-				if (!groupedData[item.layer]) {
-					groupedData[item.layer] = [];
-				}
+				groupedData[item.layer] = groupedData[item.layer] || [];
 				groupedData[item.layer].push(item);
 			}
 		}
 	}
 	return groupedData;
 };
+
+// 合并groupedData的数据
 const mergeGroupedData = (target: GroupedData, source: GroupedData) => {
 	for (const layer in source) {
-		if (!target[layer]) {
-			target[layer] = [];
-		}
+		target[layer] = target[layer] || [];
 		target[layer].push(...source[layer]);
 	}
 };
 
-const graphics = new PIXI.Graphics();
-const ElementContainer = new PIXI.Container();
-const createObjectFromElement = (element: Item): PIXI.Graphics | PIXI.Container => {
+type Carrier = PIXI.Graphics | PIXI.Container;
+const createObjectFromElement = (element: Item, carrier: Carrier = new PIXI.Graphics()): Carrier => {
 	let object;
 	switch (element.type) {
 		case "path":
-			object = graphics;
+			object = carrier as PIXI.Graphics;
 			object.lineStyle(element.width!, 0xffffff);
 			object.moveTo(element.path![0][0], element.path![0][1]);
 			for (let i = 1; i < element.path!.length; i++) {
@@ -395,7 +403,7 @@ const createObjectFromElement = (element: Item): PIXI.Graphics | PIXI.Container 
 			}
 			break;
 		case "box": {
-			object = graphics;
+			object = carrier as PIXI.Graphics;
 			object.lineStyle(0.2, 0xffffff);
 			object.moveTo(parse(element.path![0][0]), parse(element.path![0][1]));
 			for (let i = 1; i < element.path!.length; i++) {
@@ -405,30 +413,13 @@ const createObjectFromElement = (element: Item): PIXI.Graphics | PIXI.Container 
 			break;
 		}
 		case "group": {
-			object = ElementContainer;
+			object = carrier;
 			for (const childElement of element.children!) {
-				const childGraphics = createObjectFromElement(childElement);
+				const childGraphics = createObjectFromElement(childElement, new PIXI.Container());
 				object.addChild(childGraphics!);
 			}
 			break;
 		}
-		// case "polygon":
-		// 	object = graphics;
-		// 	object.lineStyle(0.2, 0xffffff);
-		// 	object.moveTo(element.path![0][0], element.path![0][1]);
-		// 	for (let i = 1; i < element.path!.length; i++) {
-		// 		object.lineTo(element.path![i][0], element.path![i][1]);
-		// 	}
-		// 	object.closePath();
-		// 	break;
-		// case "text": {
-		// 	object = text;
-		// 	object.style = { fill: 0xffffff };
-		// 	object.text = element.val!;
-		// 	object.x = element.origin![0];
-		// 	object.y = element.origin![1];
-		// 	break;
-		// }
 		default:
 			// 未知的元素类型
 			object = new PIXI.Graphics();
@@ -436,14 +427,7 @@ const createObjectFromElement = (element: Item): PIXI.Graphics | PIXI.Container 
 	}
 	return object;
 };
-// const renderShapes = (DataObject: Item[]) => {
-// 	ParentContainer.removeChildren();
-// 	for (let i = 0; i < DataObject.length; i++) {
-// 		const object = createObjectFromElement(DataObject[i]);
-// 		ParentContainer.addChild(object!);
-// 	}
-// 	mainApp.renderer.render(ParentContainer);
-// };
+
 // 自适应
 function resizeRender() {
 	const mainClientRects = main.value!.getClientRects();
