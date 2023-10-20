@@ -13,6 +13,7 @@ import { throttle } from "lodash-es";
 // import useCanvasView from "../../../../hooks/CanvasView";
 import { getClosestVal, getStepByZoom } from "../../../../utils/CalculateRuler";
 import { Positon, offset } from "../../../../types";
+import bus from "../../../../utils/EventBus";
 
 // const { getShapeGraphicsArr } = useCanvasView();
 const top = ref<HTMLElement>();
@@ -312,23 +313,45 @@ const createChildContainer = (value: Item[]) => {
 	return childContainer;
 };
 
-setTimeout(() => {
-	fetch("/js/final_design.json")
-		.then((res) => res.json())
-		.then((data) => {
-			for (const ele of data.layerInfo) {
-				layerInfoMap[ele.layername] = ele.id;
-			}
-			groupedData = groupDataByLayer(data.data);
-			const entries: [string, Item[]][] = Object.entries(groupedData);
-			for (const [key, value] of entries) {
-				const childContainer = createChildContainer(value);
-				layerContainerMap.set(Number(key), childContainer);
-				ParentContainer.addChild(childContainer);
-			}
-			mainApp.renderer.render(ParentContainer);
-		});
-}, 100);
+// setTimeout(() => {
+// 	fetch("/js/final_design.json")
+// 		.then((res) => res.json())
+// 		.then((data) => {
+// 			for (const ele of data.layerInfo) {
+// 				layerInfoMap[ele.layername] = ele.id;
+// 			}
+// 			groupedData = groupDataByLayer(data.data);
+// 			const entries: [string, Item[]][] = Object.entries(groupedData);
+// 			for (const [key, value] of entries) {
+// 				const childContainer = createChildContainer(value);
+// 				layerContainerMap.set(Number(key), childContainer);
+// 				ParentContainer.addChild(childContainer);
+// 			}
+// 			mainApp.renderer.render(ParentContainer);
+// 		});
+// }, 100);
+bus.on("jsonLoaded", (data: any) => {
+	console.log("bus on", data);
+	data = JSON.parse(data);
+	for (const ele of data.layerInfo) {
+		layerInfoMap[ele.layername] = ele.id;
+	}
+
+	groupedData = groupDataByLayer(data.data);
+	const entries: [string, Item[]][] = Object.entries(groupedData);
+	const logId = `rerender-${Math.random().toString(16).slice(2)}`;
+	console.time(logId);
+	console.log("开始清除");
+	console.timeLog(logId);
+	for (const [key, value] of entries) {
+		const childContainer = createChildContainer(value);
+		layerContainerMap.set(Number(key), childContainer);
+		ParentContainer.addChild(childContainer);
+	}
+	mainApp.renderer.render(ParentContainer);
+	console.log("渲染完毕");
+	console.timeLog(logId);
+});
 
 // 筛选不同的层匹配对应的Container
 const matchLayerContainers = (layers: string[]) => {
