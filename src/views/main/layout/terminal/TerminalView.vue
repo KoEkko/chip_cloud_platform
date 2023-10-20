@@ -7,6 +7,7 @@ import { onMounted, ref } from "vue";
 import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 import { useTerminalStore } from "../../../../store/modules/getTerminal";
+import bus from "../../../../utils/EventBus";
 
 const WebSocketURL = "ws://118.24.150.38:84/ws/console";
 
@@ -100,6 +101,8 @@ const runFakeTerminal = async () => {
 				if (resData.type === "msg") {
 					// 将log打印到terminal上
 					writeln(resData.data);
+				} else if (resData.type === "json") {
+					bus.emit("jsonLoaded", resData.data);
 				}
 			};
 			// ! http请求的代码
