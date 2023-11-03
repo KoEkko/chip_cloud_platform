@@ -31,8 +31,8 @@ const { checkedOptions, zoom, flag } = toRefs(props);
 let totalOffset = { x: 0, y: 0 };
 // 监听画布右侧的选项变化
 watch(checkedOptions, (newValue) => {
-	const res = matchLayerContainers(newValue);
-	reRender(res);
+	const layerContainers = matchLayerContainers(newValue);
+	reRender(layerContainers);
 });
 // 监听(点击放大缩小按钮)、(鼠标滚轮)时zoom的变化来重新刻画标尺
 watch(zoom, (newZoom) => {
@@ -312,10 +312,13 @@ const createChildContainer = (value: Item[]) => {
 	}
 	return childContainer;
 };
-
+// let s: any = null;
 // setTimeout(() => {
 // 	fetch("/js/final_design.json")
-// 		.then((res) => res.json())
+// 		.then((res) => {
+// 			s = performance.now();
+// 			return res.json();
+// 		})
 // 		.then((data) => {
 // 			for (const ele of data.layerInfo) {
 // 				layerInfoMap[ele.layername] = ele.id;
@@ -328,10 +331,12 @@ const createChildContainer = (value: Item[]) => {
 // 				ParentContainer.addChild(childContainer);
 // 			}
 // 			mainApp.renderer.render(ParentContainer);
+// 			let e = performance.now();
+// 			console.log(e - s);
 // 		});
 // }, 100);
 bus.on("jsonLoaded", (data: any) => {
-	console.log("bus on", data);
+	ParentContainer.removeChildren();
 	data = JSON.parse(data);
 	for (const ele of data.layerInfo) {
 		layerInfoMap[ele.layername] = ele.id;
@@ -339,23 +344,18 @@ bus.on("jsonLoaded", (data: any) => {
 
 	groupedData = groupDataByLayer(data.data);
 	const entries: [string, Item[]][] = Object.entries(groupedData);
-	const logId = `rerender-${Math.random().toString(16).slice(2)}`;
-	console.time(logId);
-	console.log("开始清除");
-	console.timeLog(logId);
 	for (const [key, value] of entries) {
 		const childContainer = createChildContainer(value);
 		layerContainerMap.set(Number(key), childContainer);
 		ParentContainer.addChild(childContainer);
 	}
 	mainApp.renderer.render(ParentContainer);
-	console.log("渲染完毕");
-	console.timeLog(logId);
 });
 
 // 筛选不同的层匹配对应的Container
 const matchLayerContainers = (layers: string[]) => {
 	const layerContainers: PIXI.Container[] = [];
+	const layerIds: number[] = [];
 	if (layers.length === 0) {
 		// 没有勾选任何层，说明是渲染全部内容
 		[...layerContainerMap.entries()].forEach((container) => {
@@ -364,6 +364,7 @@ const matchLayerContainers = (layers: string[]) => {
 	} else {
 		for (const layer of layers) {
 			const layerId = layerInfoMap[layer];
+			layerIds.push(layerId);
 			const layerContainer = layerContainerMap.get(layerId);
 			if (layerContainer !== undefined) layerContainers.push(layerContainer);
 		}
@@ -373,8 +374,8 @@ const matchLayerContainers = (layers: string[]) => {
 // 根据匹配的Container重新渲染
 const reRender = (containers: PIXI.Container[]) => {
 	ParentContainer.removeChildren();
-	containers.forEach((container) => {
-		ParentContainer.addChild(container);
+	containers.forEach((c) => {
+		ParentContainer.addChild(c);
 	});
 	mainApp.renderer.render(ParentContainer);
 };

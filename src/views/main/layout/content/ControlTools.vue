@@ -12,7 +12,7 @@
 					<div class="item">
 						<div class="i1"></div>
 						<div :class="[{ i2: getStyle(child) }, { i22: !getStyle(child) }]">{{ child.layername }}</div>
-						<div class="i3"><input type="checkbox" @click="onCheckBoxClick(child)" /></div>
+						<div ref="i3" class="i3"><input ref="InputBox" type="checkbox" @click="onCheckBoxClick(child)" /></div>
 					</div>
 				</template>
 			</div>
@@ -21,7 +21,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, nextTick, Ref } from "vue";
+import bus from "../../../../utils/EventBus";
 type Toptions = {
 	id: string;
 	layername: string;
@@ -41,14 +42,17 @@ const onCheckBoxClick = (child: Toptions) => {
 	emit("onCheckBoxClick", checkedOptions);
 };
 const options = ref<Toptions[]>();
+const InputBox = ref() as Ref<HTMLInputElement[]>;
 
-setTimeout(() => {
-	fetch("/js/final_design.json")
-		.then((res) => res.json())
-		.then((data) => {
-			options.value = data.layerInfo;
+bus.on("jsonLoaded", (data: any) => {
+	data = JSON.parse(data);
+	options.value = data.layerInfo;
+	nextTick(() => {
+		InputBox.value.forEach((i) => {
+			i.checked = true;
 		});
-}, 100);
+	});
+});
 
 const getStyle = function (value: Toptions) {
 	return !!value.pid;
