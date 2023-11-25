@@ -1,7 +1,14 @@
 <template>
-	<ToolsArea @scale-control="scaleHandler" />
+	<ToolsArea @scale-control="scaleHandler" @toggle-cursor="toggleCursorHandler" />
 	<div class="content-box">
-		<CanvasView :checked-options="checkedOptions" :zoom="zoomValue" :flag="flag" @on-mouse-wheel="mouseWheelHandler" />
+		<CanvasView
+			:checked-options="checkedOptions"
+			:zoom="zoomValue"
+			:flag="flag"
+			:cursor-changed="cursorChanged"
+			@on-mouse-wheel="mouseWheelHandler"
+			@on-draw-graphics="drawGraphics"
+		/>
 		<ControlTools @on-check-box-click="onCheckBoxChange" />
 	</div>
 </template>
@@ -19,14 +26,20 @@ const onCheckBoxChange = (options: string[]) => {
 
 let zoomValue: Ref<number> = ref(1);
 let flag: Ref<boolean> = ref(true);
+const cursorChanged = ref(false);
 const scaleHandler = (scale: number) => {
 	// 修改全局的zoom
 	zoomValue.value = scale;
 	flag.value = !flag.value;
 };
-
+const drawGraphics = (cursor: boolean) => {
+	cursorChanged.value = cursor;
+};
 const mouseWheelHandler = (newZoom: number) => {
 	zoomValue.value = newZoom;
+};
+const toggleCursorHandler = (changed: boolean) => {
+	cursorChanged.value = changed;
 };
 </script>
 

@@ -4,21 +4,21 @@
 		<div class="tools-area">
 			<div><zoom-in-outlined :style="iconStyle" @click="scaleControl(true)" /></div>
 			<div><zoom-out-outlined :style="iconStyle" @click="scaleControl(false)" /></div>
+			<div><BorderOutlined :style="iconStyle" @click="toggleCursor" /></div>
 		</div>
 		<a-input class="input"></a-input>
 	</div>
 </template>
 
 <script setup lang="ts">
-import { ZoomInOutlined, ZoomOutOutlined } from "@ant-design/icons-vue";
-
+import { ZoomInOutlined, ZoomOutOutlined, BorderOutlined } from "@ant-design/icons-vue";
 const iconStyle = {
 	fontSize: "20px",
 	cursor: "pointer",
 };
 
 let zoomValue = 1; // 缩放
-const emits = defineEmits(["scaleControl"]);
+const emits = defineEmits(["scaleControl", "toggleCursor"]);
 const scaleControl = (flag: boolean) => {
 	if (flag) {
 		if (zoomValue > 2.5) return;
@@ -28,6 +28,11 @@ const scaleControl = (flag: boolean) => {
 		zoomValue -= 0.1;
 	}
 	emits("scaleControl", zoomValue);
+};
+let cursorChanged = false;
+const toggleCursor = () => {
+	cursorChanged = !cursorChanged;
+	emits("toggleCursor", cursorChanged);
 };
 </script>
 

@@ -2,7 +2,13 @@
 	<div class="container">
 		<div ref="top" class="top"></div>
 		<div ref="left" class="left"></div>
-		<div ref="main" class="main"></div>
+		<div
+			ref="main"
+			class="main"
+			:class="{ 'cursor-changed': cursorChanged }"
+			@mouseover="changeCursorOnHover"
+			@mouseout="resetCursor"
+		></div>
 	</div>
 </template>
 
@@ -10,12 +16,10 @@
 import { onMounted, ref, toRefs, watch } from "vue";
 import * as PIXI from "pixi.js";
 import { throttle } from "lodash-es";
-// import useCanvasView from "../../../../hooks/CanvasView";
 import { getClosestVal, getStepByZoom } from "../../../../utils/CalculateRuler";
 import { Positon, offset } from "../../../../types";
 import bus from "../../../../utils/EventBus";
 
-// const { getShapeGraphicsArr } = useCanvasView();
 const top = ref<HTMLElement>();
 const main = ref<HTMLElement>();
 const left = ref<HTMLElement>();
@@ -24,9 +28,10 @@ const props = defineProps<{
 	checkedOptions: string[];
 	zoom: number;
 	flag: boolean;
+	cursorChanged: boolean;
 }>();
 // zoom 是缩放比， zoom 越大 step越小
-const { checkedOptions, zoom, flag } = toRefs(props);
+const { checkedOptions, zoom, flag, cursorChanged } = toRefs(props);
 // 记录画布总偏移量
 let totalOffset = { x: 0, y: 0 };
 // 监听画布右侧的选项变化
@@ -41,6 +46,7 @@ watch(zoom, (newZoom) => {
 watch(flag, () => {
 	scaleCenter(zoom.value);
 });
+
 // 初始化main、left、top & App
 const mainApp = new PIXI.Application({
 	background: "#000000",
@@ -67,12 +73,13 @@ const setupMainApp = () => {
 	mainApp.stage.on("pointermove", throttleOnDrag);
 	mainApp.stage.on("pointerup", onDragEnd);
 	mainApp.stage.on("pointerupoutside", onDragEnd);
+	mainApp.stage.on("mousedown", drawGraphics);
 	mainApp.renderer.resize(width, height);
 	// 初次渲染所有的图形
-	// renderShapes(DataJson.data);
 	mainApp.stage.addChild(ParentContainer);
 	main.value?.appendChild(mainApp.view as any);
 };
+
 const topApp = new PIXI.Application({
 	background: "#ffffff",
 	autoDensity: true,
@@ -105,7 +112,7 @@ const setupLeftApp = () => {
  * 通过emit事件通知父组件修改
  */
 const zoomRef = ref(zoom.value);
-const emits = defineEmits(["onMouseWheel"]);
+const emits = defineEmits(["onMouseWheel", "onDrawGraphics"]);
 
 const calculateOffset = (offset: offset, currScale: number, prevScale: number) => {
 	// 获取鼠标、画布中心的位置
@@ -236,7 +243,10 @@ const updateRuler = (zoom: number, position: Positon = { x: 0, y: 0 }) => {
 		tempGraphicsX.lineTo(posX, rulerY);
 		tempGraphicsX.endFill();
 		// 刻度值
-		const text = new PIXI.Text(String(x), { fontSize: 12, fill: setting.rulerMarkStroke });
+		const text = new PIXI.Text(String(x), {
+			fontSize: 12,
+			fill: setting.rulerMarkStroke,
+		});
 		text.x = posX;
 		text.y = 0;
 		text.anchor.set(0.5, 0);
@@ -258,7 +268,10 @@ const updateRuler = (zoom: number, position: Positon = { x: 0, y: 0 }) => {
 		tempGraphicsY.moveTo(rulerX, posY);
 		tempGraphicsY.lineTo(rulerX + setting.rulerMarkSize, posY);
 		tempGraphicsY.endFill();
-		const text = new PIXI.Text(String(y), { fontSize: 12, fill: setting.rulerMarkStroke });
+		const text = new PIXI.Text(String(y), {
+			fontSize: 12,
+			fill: setting.rulerMarkStroke,
+		});
 		text.x = rulerX - 20;
 		text.y = posY;
 		text.anchor.set(0.5, 0);
@@ -272,7 +285,7 @@ const updateRuler = (zoom: number, position: Positon = { x: 0, y: 0 }) => {
 
 interface Group {
 	type: "group";
-	structName: string;
+	structName?: string;
 	children?: Item[];
 }
 interface Path {
@@ -289,7 +302,10 @@ interface Box {
 	layer: number;
 	path: number[][];
 }
-type Item = Group | Path | Box;
+interface Sref {
+	type: "sref";
+}
+type Item = Group | Path | Box | Sref;
 interface GroupedData {
 	[layer: number]: Item[];
 }
@@ -303,46 +319,98 @@ const layerInfoMap: Record<string, number> = {};
 const layerContainerMap: Map<number, PIXI.Container> = new Map();
 
 // 每一层创建一个container
-const createChildContainer = (value: Item[]) => {
+const createChildContainer = (value: Item[], isSelected: boolean = false) => {
 	const childContainer = new PIXI.Container();
 	const Graphics = new PIXI.Graphics();
 	for (const item of value) {
-		const object = createObjectFromElement(item, Graphics);
+		const object = createObjectFromElement(item, isSelected, Graphics);
 		childContainer.addChild(object);
 	}
 	return childContainer;
 };
-// let s: any = null;
-// setTimeout(() => {
-// 	fetch("/js/final_design.json")
-// 		.then((res) => {
-// 			s = performance.now();
-// 			return res.json();
-// 		})
-// 		.then((data) => {
-// 			for (const ele of data.layerInfo) {
-// 				layerInfoMap[ele.layername] = ele.id;
-// 			}
-// 			groupedData = groupDataByLayer(data.data);
-// 			const entries: [string, Item[]][] = Object.entries(groupedData);
-// 			for (const [key, value] of entries) {
-// 				const childContainer = createChildContainer(value);
-// 				layerContainerMap.set(Number(key), childContainer);
-// 				ParentContainer.addChild(childContainer);
-// 			}
-// 			mainApp.renderer.render(ParentContainer);
-// 			let e = performance.now();
-// 			console.log(e - s);
-// 		});
-// }, 100);
+let allData: any;
+const UnitSeletedCallBack = (ctx: string[], isSelected: boolean) => {
+	ParentContainer.x = 0;
+	ParentContainer.y = 0;
+	const regex = /(\d+)-(\d+)-(\d+)/;
+	let MAXX: number = 0;
+	let MINX: number = Infinity;
+	let MAXY: number = 0;
+	let MINY: number = Infinity;
+	const foundElement = ctx.filter((i) => !i.startsWith("0"));
+	for (const item of foundElement) {
+		const match = item.match(regex) ?? [];
+		const index = match[2];
+		const ParentIndex = match[3];
+		const childUnit = allData[ParentIndex].children[index];
+		for (const pathItem of childUnit.path) {
+			MAXX = Math.max(MAXX, pathItem[0]);
+			MINX = Math.min(MINX, pathItem[0]);
+			MAXY = Math.max(MAXY, pathItem[1]);
+			MINY = Math.min(MINY, pathItem[1]);
+		}
+		const graphics = createObjectFromElement(childUnit, isSelected);
+		ParentContainer.addChild(graphics);
+	}
+	// centerX 和 centerY 是被选中单元图形的中心点
+	const centerX = parse(Math.floor((MAXX - MINX) / 2 + MINX));
+	const centerY = parse(Math.floor((MAXY - MINY) / 2 + MINY));
+	const { width, height } = mainAppRectBound;
+	const offsetX = centerX - Math.floor(width / 2);
+	const offsetY = centerY - Math.floor(height / 2);
+	ParentContainer.x -= offsetX;
+	ParentContainer.y -= offsetY;
+	totalOffset.x += offsetX;
+	totalOffset.y += offsetY;
+	updateRuler(zoom.value, totalOffset);
+	mainApp.renderer.render(ParentContainer);
+};
+//
+type Keys = {
+	newValue: string[];
+	oldValue: string[];
+};
+bus.on("unitOptionChange", (keys: Keys) => {
+	let { newValue, oldValue } = keys;
+	const addedElement = newValue.filter((i) => !oldValue.includes(i));
+	const removedElement = oldValue.filter((i) => !newValue.includes(i));
+
+	if (addedElement.length > 0) {
+		UnitSeletedCallBack(addedElement, true);
+	}
+	if (removedElement.length > 0) {
+		UnitSeletedCallBack(removedElement, false);
+	}
+});
+setTimeout(() => {
+	fetch("/js/final_design.json")
+		.then((res) => {
+			return res.json();
+		})
+		.then((data) => {
+			for (const ele of data.layerInfo) {
+				layerInfoMap[ele.layername] = ele.id;
+			}
+			const { grouped, filterSrefData } = groupDataByLayer(data.data);
+			groupedData = grouped;
+			allData = filterSrefData;
+			const entries: [string, Item[]][] = Object.entries(groupedData);
+			for (const [key, value] of entries) {
+				const childContainer = createChildContainer(value);
+				layerContainerMap.set(Number(key), childContainer);
+				ParentContainer.addChild(childContainer);
+			}
+		});
+}, 100);
+
 bus.on("jsonLoaded", (data: any) => {
 	ParentContainer.removeChildren();
 	data = JSON.parse(data);
 	for (const ele of data.layerInfo) {
 		layerInfoMap[ele.layername] = ele.id;
 	}
-
-	groupedData = groupDataByLayer(data.data);
+	const { grouped } = groupDataByLayer(data.data);
+	groupedData = grouped;
 	const entries: [string, Item[]][] = Object.entries(groupedData);
 	for (const [key, value] of entries) {
 		const childContainer = createChildContainer(value);
@@ -356,18 +424,12 @@ bus.on("jsonLoaded", (data: any) => {
 const matchLayerContainers = (layers: string[]) => {
 	const layerContainers: PIXI.Container[] = [];
 	const layerIds: number[] = [];
-	if (layers.length === 0) {
-		// 没有勾选任何层，说明是渲染全部内容
-		[...layerContainerMap.entries()].forEach((container) => {
-			layerContainers.push(container[1]);
-		});
-	} else {
-		for (const layer of layers) {
-			const layerId = layerInfoMap[layer];
-			layerIds.push(layerId);
-			const layerContainer = layerContainerMap.get(layerId);
-			if (layerContainer !== undefined) layerContainers.push(layerContainer);
-		}
+	if (layers.length === 0) return layerContainers;
+	for (const layer of layers) {
+		const layerId = layerInfoMap[layer];
+		layerIds.push(layerId);
+		const layerContainer = layerContainerMap.get(layerId);
+		if (layerContainer !== undefined) layerContainers.push(layerContainer);
 	}
 	return layerContainers;
 };
@@ -384,24 +446,27 @@ const reRender = (containers: PIXI.Container[]) => {
 function parse(num: number) {
 	return parseFloat((num / 100).toFixed(3));
 }
-
 // 根据 layer 将数据分组
 const groupDataByLayer = (data: Item[]) => {
-	const groupedData: GroupedData = {};
+	const grouped: GroupedData = {};
+	const filterSrefData: any[] = [];
 	for (const item of data) {
+		if (item.type !== "sref") {
+			filterSrefData.push(item);
+		}
 		if (item.type === "group") {
 			if (item.children) {
-				const childrenData = groupDataByLayer(item.children);
-				mergeGroupedData(groupedData, childrenData);
+				const { grouped: childrenData } = groupDataByLayer(item.children);
+				mergeGroupedData(grouped, childrenData);
 			}
 		} else if (item.type === "box" || item.type === "path") {
 			if (item.layer !== undefined) {
-				groupedData[item.layer] = groupedData[item.layer] || [];
-				groupedData[item.layer].push(item);
+				grouped[item.layer] = grouped[item.layer] || [];
+				grouped[item.layer].push(item);
 			}
 		}
 	}
-	return groupedData;
+	return { grouped, filterSrefData };
 };
 
 // 合并groupedData的数据
@@ -413,12 +478,17 @@ const mergeGroupedData = (target: GroupedData, source: GroupedData) => {
 };
 
 type Carrier = PIXI.Graphics | PIXI.Container;
-const createObjectFromElement = (element: Item, carrier: Carrier = new PIXI.Graphics()): Carrier => {
+const createObjectFromElement = (
+	element: Item,
+	isSelected: boolean = false,
+	carrier: Carrier = new PIXI.Graphics()
+): Carrier => {
 	let object;
+	const lineColor = isSelected ? "#ffff00" : 0xffffff;
 	switch (element.type) {
 		case "path":
 			object = carrier as PIXI.Graphics;
-			object.lineStyle(element.width!, 0xffffff);
+			object.lineStyle(element.width!, lineColor);
 			object.moveTo(element.path![0][0], element.path![0][1]);
 			for (let i = 1; i < element.path!.length; i++) {
 				const x = element.path![i][0];
@@ -428,7 +498,7 @@ const createObjectFromElement = (element: Item, carrier: Carrier = new PIXI.Grap
 			break;
 		case "box": {
 			object = carrier as PIXI.Graphics;
-			object.lineStyle(0.2, 0xffffff);
+			object.lineStyle(0.2, lineColor);
 			object.moveTo(parse(element.path![0][0]), parse(element.path![0][1]));
 			for (let i = 1; i < element.path!.length; i++) {
 				object.lineTo(parse(element.path![i][0]), parse(element.path![i][1]));
@@ -439,7 +509,7 @@ const createObjectFromElement = (element: Item, carrier: Carrier = new PIXI.Grap
 		case "group": {
 			object = carrier;
 			for (const childElement of element.children!) {
-				const childGraphics = createObjectFromElement(childElement, new PIXI.Container());
+				const childGraphics = createObjectFromElement(childElement, false, new PIXI.Container());
 				object.addChild(childGraphics!);
 			}
 			break;
@@ -452,6 +522,61 @@ const createObjectFromElement = (element: Item, carrier: Carrier = new PIXI.Grap
 	return object;
 };
 
+// macro摆放,水平、垂直参考线的实现
+const ReferenceLines = new PIXI.Graphics();
+const macro = new PIXI.Graphics();
+const drawRect = (e: PIXI.FederatedMouseEvent) => {
+	macro.clear();
+	const { x, y } = e.global;
+	const width = 15;
+	const height = 15;
+	const rectangle = new PIXI.Rectangle(x - width / 2, y - height / 2, width, height);
+	macro.lineStyle(2, 0xfffff, 1);
+	macro.drawRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+};
+const drawReferenceLines = (e: PIXI.FederatedMouseEvent) => {
+	const { width, height } = mainAppRectBound;
+	ReferenceLines.clear();
+	const x = e.globalX;
+	const y = e.globalY;
+	// 画垂直虚线
+	ReferenceLines.lineStyle(1, 0xff0000, 0.5, 0.5, true);
+	ReferenceLines.moveTo(x, 0);
+	ReferenceLines.lineTo(x, height);
+
+	// 画水平虚线
+	ReferenceLines.moveTo(0, y);
+	ReferenceLines.lineTo(width, y);
+};
+let cursor = cursorChanged.value;
+const changeCursorOnHover = () => {
+	if (cursorChanged.value) {
+		main.value?.classList.add("cursor-changed");
+		mainApp.stage.addChild(ReferenceLines);
+		mainApp.stage.addChild(macro);
+		mainApp.stage.on("mousemove", drawRect);
+		mainApp.stage.on("mousemove", drawReferenceLines);
+	}
+};
+const resetCursor = () => {
+	if (!cursorChanged.value) return;
+	main.value?.classList.remove("cursor-changed");
+	ReferenceLines.clear();
+	macro.clear();
+	mainApp.stage.off("mousemove", drawReferenceLines);
+	mainApp.stage.off("mousemove", drawRect);
+};
+const drawGraphics = () => {
+	if (cursorChanged.value) {
+		cursor = false;
+		main.value?.classList.remove("cursor-changed");
+		ReferenceLines.clear();
+		ParentContainer.addChild(macro);
+		mainApp.stage.off("mousemove", drawReferenceLines);
+		mainApp.stage.off("mousemove", drawRect);
+		emits("onDrawGraphics", cursor);
+	}
+};
 // 自适应
 function resizeRender() {
 	const mainClientRects = main.value!.getClientRects();
@@ -515,5 +640,9 @@ onMounted(() => {
 		width: 100%;
 		overflow: hidden;
 	}
+}
+
+.cursor-changed {
+	cursor: crosshair; /* 修改为你想要的光标样式 */
 }
 </style>
