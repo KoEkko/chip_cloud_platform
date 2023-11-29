@@ -1,13 +1,14 @@
 <template>
-	<ToolsArea @scale-control="scaleHandler" @toggle-cursor="toggleCursorHandler" />
+	<ToolsArea :has-finished-add-macro="hasFinishedAddMacro" @scale-control="scaleHandler" @add-macro="addMacroHandler" />
 	<div class="content-box">
 		<CanvasView
 			:checked-options="checkedOptions"
 			:zoom="zoomValue"
 			:flag="flag"
-			:cursor-changed="cursorChanged"
+			:is-adding="isAdding"
+			:macro-type="MacroType"
 			@on-mouse-wheel="mouseWheelHandler"
-			@on-draw-graphics="drawGraphics"
+			@has-finished-add-macro="finishedAddMacroHandler"
 		/>
 		<ControlTools @on-check-box-click="onCheckBoxChange" />
 	</div>
@@ -26,20 +27,27 @@ const onCheckBoxChange = (options: string[]) => {
 
 let zoomValue: Ref<number> = ref(1);
 let flag: Ref<boolean> = ref(true);
-const cursorChanged = ref(false);
+const isAdding = ref(false);
+const MacroType = ref("");
 const scaleHandler = (scale: number) => {
 	// 修改全局的zoom
 	zoomValue.value = scale;
 	flag.value = !flag.value;
 };
-const drawGraphics = (cursor: boolean) => {
-	cursorChanged.value = cursor;
-};
+
 const mouseWheelHandler = (newZoom: number) => {
 	zoomValue.value = newZoom;
 };
-const toggleCursorHandler = (changed: boolean) => {
-	cursorChanged.value = changed;
+
+const addMacroHandler = (args: [boolean, string]) => {
+	const [isAdd, type] = args;
+	isAdding.value = isAdd;
+	MacroType.value = type;
+};
+const hasFinishedAddMacro = ref(false);
+const finishedAddMacroHandler = (isAdd: boolean) => {
+	isAdding.value = isAdd;
+	if (!isAdding.value) hasFinishedAddMacro.value = true;
 };
 </script>
 

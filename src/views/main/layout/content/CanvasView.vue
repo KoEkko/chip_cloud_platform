@@ -2,13 +2,7 @@
 	<div class="container">
 		<div ref="top" class="top"></div>
 		<div ref="left" class="left"></div>
-		<div
-			ref="main"
-			class="main"
-			:class="{ 'cursor-changed': cursorChanged }"
-			@mouseover="changeCursorOnHover"
-			@mouseout="resetCursor"
-		></div>
+		<div ref="main" class="main" :class="{ 'cursor-changed': isAdding }"></div>
 	</div>
 </template>
 
@@ -28,10 +22,11 @@ const props = defineProps<{
 	checkedOptions: string[];
 	zoom: number;
 	flag: boolean;
-	cursorChanged: boolean;
+	isAdding: boolean;
+	macroType: string;
 }>();
 // zoom 是缩放比， zoom 越大 step越小
-const { checkedOptions, zoom, flag, cursorChanged } = toRefs(props);
+const { checkedOptions, zoom, flag, isAdding, macroType } = toRefs(props);
 // 记录画布总偏移量
 let totalOffset = { x: 0, y: 0 };
 // 监听画布右侧的选项变化
@@ -73,7 +68,6 @@ const setupMainApp = () => {
 	mainApp.stage.on("pointermove", throttleOnDrag);
 	mainApp.stage.on("pointerup", onDragEnd);
 	mainApp.stage.on("pointerupoutside", onDragEnd);
-	mainApp.stage.on("mousedown", drawGraphics);
 	mainApp.renderer.resize(width, height);
 	// 初次渲染所有的图形
 	mainApp.stage.addChild(ParentContainer);
@@ -112,7 +106,7 @@ const setupLeftApp = () => {
  * 通过emit事件通知父组件修改
  */
 const zoomRef = ref(zoom.value);
-const emits = defineEmits(["onMouseWheel", "onDrawGraphics"]);
+const emits = defineEmits(["onMouseWheel", "hasFinishedAddMacro"]);
 
 const calculateOffset = (offset: offset, currScale: number, prevScale: number) => {
 	// 获取鼠标、画布中心的位置
@@ -123,9 +117,9 @@ const calculateOffset = (offset: offset, currScale: number, prevScale: number) =
 	const dx = (gx - cx) * (1 - scaleDiff);
 	const dy = (gy - cy) * (1 - scaleDiff);
 	// container做相对应的移动、缩放
-	ParentContainer.scale.set(currScale);
 	ParentContainer.x += dx;
 	ParentContainer.y += dy;
+	ParentContainer.scale.set(currScale);
 	totalOffset.x -= dx;
 	totalOffset.y -= dy;
 };
@@ -330,8 +324,8 @@ const createChildContainer = (value: Item[], isSelected: boolean = false) => {
 };
 let allData: any;
 const UnitSeletedCallBack = (ctx: string[], isSelected: boolean) => {
-	ParentContainer.x = 0;
-	ParentContainer.y = 0;
+	const dx = ParentContainer.x;
+	const dy = ParentContainer.y;
 	const regex = /(\d+)-(\d+)-(\d+)/;
 	let MAXX: number = 0;
 	let MINX: number = Infinity;
@@ -353,8 +347,8 @@ const UnitSeletedCallBack = (ctx: string[], isSelected: boolean) => {
 		ParentContainer.addChild(graphics);
 	}
 	// centerX 和 centerY 是被选中单元图形的中心点
-	const centerX = parse(Math.floor((MAXX - MINX) / 2 + MINX));
-	const centerY = parse(Math.floor((MAXY - MINY) / 2 + MINY));
+	const centerX = parse(Math.floor((MAXX - MINX) / 2 + MINX) * zoom.value) + dx;
+	const centerY = parse(Math.floor((MAXY - MINY) / 2 + MINY) * zoom.value) + dy;
 	const { width, height } = mainAppRectBound;
 	const offsetX = centerX - Math.floor(width / 2);
 	const offsetY = centerY - Math.floor(height / 2);
@@ -488,11 +482,11 @@ const createObjectFromElement = (
 	switch (element.type) {
 		case "path":
 			object = carrier as PIXI.Graphics;
-			object.lineStyle(element.width!, lineColor);
-			object.moveTo(element.path![0][0], element.path![0][1]);
+			object.lineStyle(0.2, lineColor);
+			object.moveTo(parse(element.path![0][0]), parse(element.path![0][1]));
 			for (let i = 1; i < element.path!.length; i++) {
-				const x = element.path![i][0];
-				const y = element.path![i][1];
+				const x = parse(element.path![i][0]);
+				const y = parse(element.path![i][1]);
 				object.lineTo(x, y);
 			}
 			break;
@@ -523,18 +517,65 @@ const createObjectFromElement = (
 };
 
 // macro摆放,水平、垂直参考线的实现
-const ReferenceLines = new PIXI.Graphics();
-const macro = new PIXI.Graphics();
-const drawRect = (e: PIXI.FederatedMouseEvent) => {
-	macro.clear();
-	const { x, y } = e.global;
-	const width = 15;
-	const height = 15;
-	const rectangle = new PIXI.Rectangle(x - width / 2, y - height / 2, width, height);
-	macro.lineStyle(2, 0xfffff, 1);
-	macro.drawRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+
+// 矩形框默认样式
+const RectStyle = {
+	width: 15,
+	height: 15,
 };
-const drawReferenceLines = (e: PIXI.FederatedMouseEvent) => {
+// 直线默认样式
+const LineStyle = {
+	length: 15,
+};
+/**
+ * @param x Macro的坐标x
+ * @param y Macro的坐标y
+ * @returns 返回新的Graphics
+ */
+const newMacro = (type: string, x: number = 0, y: number = 0) => {
+	let tempMacro: PIXI.Graphics | PIXI.Container;
+	switch (type) {
+		case "border": {
+			tempMacro = new PIXI.Graphics();
+			(tempMacro as PIXI.Graphics).lineStyle(2, 0xfffff, 1);
+			(tempMacro as PIXI.Graphics).drawRect(x, y, RectStyle.width, RectStyle.height);
+			break;
+		}
+		case "line": {
+			const tempContainer = new PIXI.Container();
+			const tempLineMacro = new PIXI.Graphics();
+			tempLineMacro.lineStyle(2, 0xfffff, 1);
+			tempLineMacro.moveTo(0, 0);
+			tempLineMacro.lineTo(15, 0);
+			tempContainer.addChild(tempLineMacro);
+			tempContainer.position.set(x, y);
+			tempMacro = tempContainer;
+			break;
+		}
+		default: {
+			tempMacro = new PIXI.Graphics();
+		}
+	}
+	return tempMacro;
+};
+
+// 创建临时的Macro,用来movemove移动的
+const tempBorderMacro = newMacro("border");
+const tempLineMacro = newMacro("line");
+const movingMacro = (macroType: string, e: PIXI.FederatedMouseEvent) => {
+	const { x, y } = e.global;
+	if (macroType === "border") {
+		const { width, height } = RectStyle;
+		tempBorderMacro.position.set(x - width / 2, y - height / 2);
+	} else if (macroType === "line") {
+		const { length } = LineStyle;
+		tempLineMacro.position.set(x - length / 2, y - length / 2);
+	}
+};
+
+// 参考线
+const ReferenceLines = new PIXI.Graphics();
+const movingReferenceLines = (e: PIXI.FederatedMouseEvent) => {
 	const { width, height } = mainAppRectBound;
 	ReferenceLines.clear();
 	const x = e.globalX;
@@ -548,35 +589,42 @@ const drawReferenceLines = (e: PIXI.FederatedMouseEvent) => {
 	ReferenceLines.moveTo(0, y);
 	ReferenceLines.lineTo(width, y);
 };
-let cursor = cursorChanged.value;
-const changeCursorOnHover = () => {
-	if (cursorChanged.value) {
-		main.value?.classList.add("cursor-changed");
-		mainApp.stage.addChild(ReferenceLines);
-		mainApp.stage.addChild(macro);
-		mainApp.stage.on("mousemove", drawRect);
-		mainApp.stage.on("mousemove", drawReferenceLines);
+// 用来修改isAdding变量的，通过emits触发修改
+let isAdd = isAdding.value;
+// 监听isAdding的变化
+watch([isAdding, macroType], ([addValue, macroTypeValue]) => {
+	// isAdding === true的话，就监听事件
+	if (addValue) {
+		mainApp.stage.on("mousemove", movingReferenceLines);
+		mainApp.stage.on("mousemove", movingMacro.bind(null, macroType.value));
+		mainApp.stage.on("mouseenter", () => {
+			mainApp.stage.addChild(ReferenceLines, macroTypeValue === "border" ? tempBorderMacro : tempLineMacro);
+		});
+		mainApp.stage.on("mousedown", (e: PIXI.FederatedMouseEvent) => {
+			const { x, y } = e.global;
+			let macro;
+			if (macroTypeValue === "border") {
+				const { width, height } = RectStyle;
+				macro = newMacro(macroTypeValue, x - width / 2, y - height / 2);
+			} else {
+				const { length } = LineStyle;
+				macro = newMacro(macroTypeValue, x - length / 2, y - length / 2);
+			}
+			// 真正需要添加到ParentContainer中的Macro
+			ParentContainer.addChild(macro);
+			// 添加完成，修改变量值
+			isAdd = false;
+			// 触发hasFinishedAddMacro，说明此时已经添加完成
+			emits("hasFinishedAddMacro", isAdd);
+		});
+	} else if (addValue === false) {
+		// 添加完成后撤销监听、移除临时的参考线和Macro
+		mainApp.stage.removeChild(ReferenceLines, macroTypeValue === "border" ? tempBorderMacro : tempLineMacro);
+		mainApp.stage.off("mousemove");
+		mainApp.stage.off("mousedown");
+		mainApp.stage.off("mouseenter");
 	}
-};
-const resetCursor = () => {
-	if (!cursorChanged.value) return;
-	main.value?.classList.remove("cursor-changed");
-	ReferenceLines.clear();
-	macro.clear();
-	mainApp.stage.off("mousemove", drawReferenceLines);
-	mainApp.stage.off("mousemove", drawRect);
-};
-const drawGraphics = () => {
-	if (cursorChanged.value) {
-		cursor = false;
-		main.value?.classList.remove("cursor-changed");
-		ReferenceLines.clear();
-		ParentContainer.addChild(macro);
-		mainApp.stage.off("mousemove", drawReferenceLines);
-		mainApp.stage.off("mousemove", drawRect);
-		emits("onDrawGraphics", cursor);
-	}
-};
+});
 // 自适应
 function resizeRender() {
 	const mainClientRects = main.value!.getClientRects();

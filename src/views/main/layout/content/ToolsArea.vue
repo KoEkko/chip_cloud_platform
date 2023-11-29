@@ -4,21 +4,34 @@
 		<div class="tools-area">
 			<div><zoom-in-outlined :style="iconStyle" @click="scaleControl(true)" /></div>
 			<div><zoom-out-outlined :style="iconStyle" @click="scaleControl(false)" /></div>
-			<div><BorderOutlined :style="iconStyle" @click="toggleCursor" /></div>
+			<div @click="addMacroHandler">
+				<BorderOutlined :style="iconStyle" class="macro" />
+				<LineOutlined :style="iconStyle" class="macro" />
+			</div>
 		</div>
 		<a-input class="input"></a-input>
 	</div>
 </template>
 
 <script setup lang="ts">
-import { ZoomInOutlined, ZoomOutOutlined, BorderOutlined } from "@ant-design/icons-vue";
+import { watch, toRefs } from "vue";
+import { ZoomInOutlined, ZoomOutOutlined, BorderOutlined, LineOutlined } from "@ant-design/icons-vue";
+const props = defineProps<{
+	hasFinishedAddMacro: boolean;
+}>();
+const { hasFinishedAddMacro } = toRefs(props);
+watch(hasFinishedAddMacro, (newValue) => {
+	if (newValue) {
+		isAdding = false;
+	}
+});
 const iconStyle = {
 	fontSize: "20px",
 	cursor: "pointer",
 };
 
 let zoomValue = 1; // 缩放
-const emits = defineEmits(["scaleControl", "toggleCursor"]);
+const emits = defineEmits(["scaleControl", "addMacro"]);
 const scaleControl = (flag: boolean) => {
 	if (flag) {
 		if (zoomValue > 2.5) return;
@@ -29,10 +42,13 @@ const scaleControl = (flag: boolean) => {
 	}
 	emits("scaleControl", zoomValue);
 };
-let cursorChanged = false;
-const toggleCursor = () => {
-	cursorChanged = !cursorChanged;
-	emits("toggleCursor", cursorChanged);
+let isAdding = false;
+const addMacroHandler = (e: MouseEvent) => {
+	const target = e.target as HTMLElement;
+	if (target.dataset.icon === undefined) return;
+	const type = target.dataset.icon;
+	isAdding = true;
+	emits("addMacro", [isAdding, type]);
 };
 </script>
 
@@ -67,5 +83,9 @@ const toggleCursor = () => {
 
 .ant-layout-content {
 	min-height: fit-content;
+}
+
+.macro {
+	margin-right: 20px;
 }
 </style>
