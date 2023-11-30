@@ -537,16 +537,16 @@ const newMacro = (type: string, x: number = 0, y: number = 0) => {
 	switch (type) {
 		case "border": {
 			tempMacro = new PIXI.Graphics();
-			(tempMacro as PIXI.Graphics).lineStyle(2, 0xfffff, 1);
-			(tempMacro as PIXI.Graphics).drawRect(x, y, RectStyle.width, RectStyle.height);
+			(tempMacro as PIXI.Graphics).lineStyle(2 / zoom.value, 0xfffff);
+			(tempMacro as PIXI.Graphics).drawRect(x, y, RectStyle.width / zoom.value, RectStyle.height / zoom.value);
 			break;
 		}
 		case "line": {
 			const tempContainer = new PIXI.Container();
 			const tempLineMacro = new PIXI.Graphics();
-			tempLineMacro.lineStyle(2, 0xfffff, 1);
+			tempLineMacro.lineStyle(2 / zoom.value, 0xfffff);
 			tempLineMacro.moveTo(0, 0);
-			tempLineMacro.lineTo(15, 0);
+			tempLineMacro.lineTo(15 / zoom.value, 0);
 			tempContainer.addChild(tempLineMacro);
 			tempContainer.position.set(x, y);
 			tempMacro = tempContainer;
@@ -603,12 +603,22 @@ watch([isAdding, macroType], ([addValue, macroTypeValue]) => {
 		mainApp.stage.on("mousedown", (e: PIXI.FederatedMouseEvent) => {
 			const { x, y } = e.global;
 			let macro;
+			const dx = ParentContainer.x;
+			const dy = ParentContainer.y;
 			if (macroTypeValue === "border") {
 				const { width, height } = RectStyle;
-				macro = newMacro(macroTypeValue, x - width / 2, y - height / 2);
+				macro = newMacro(
+					macroTypeValue,
+					Math.floor((-dx + (x - width / 2)) / zoom.value),
+					Math.floor((-dy + (y - height / 2)) / zoom.value)
+				);
 			} else {
 				const { length } = LineStyle;
-				macro = newMacro(macroTypeValue, x - length / 2, y - length / 2);
+				macro = newMacro(
+					macroTypeValue,
+					Math.floor((-dx + (x - length / 2)) / zoom.value),
+					Math.floor((-dy + (y - length / 2)) / zoom.value)
+				);
 			}
 			// 真正需要添加到ParentContainer中的Macro
 			ParentContainer.addChild(macro);
